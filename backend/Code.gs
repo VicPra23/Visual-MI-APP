@@ -183,12 +183,17 @@ function handleLogin(ss, email, password) {
       const headers = sData.shift();
       const userRole = String(user[2] || '').trim().toUpperCase();
       const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+      const isAM = userRole === 'AM';
       const cleanEmail = String(email || '').trim().toLowerCase();
       
       userStores = sData.filter(r => {
-        const storeUser = String(r[3] || '').trim().toLowerCase(); // Columna D (índice 3) es USUARIO
+        const storeUser = String(r[3] || '').trim().toLowerCase(); // Columna D (Índice 3) es USUARIO
+        const storeAM = String(r[12] || '').trim().toLowerCase(); // Columna M (Índice 12) es AM
         if (isAdmin) {
             return true; // Devolver todas las tiendas para el Admin, pero con la info del usuario incluida
+        }
+        if (isAM) {
+            return storeAM === cleanEmail; // Si es AM, devolver tiendas que tengan asignado este AM
         }
         return storeUser === cleanEmail;
       }).map(r => {
