@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxxvnXnL-X6Rd7rW8v_UWDaVJwnU9t9o_ke_Rfs-dcsRzy8Xz9iyaWVYUpSorurQzNbMQ/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbwI8cfFTok0YPAOJjI4GsTb6ZWwdcBSXKeTgXYZiKtB1Xt5XWLWZ5hDZiu94UOQvkABkg/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -441,6 +441,7 @@ window.renderTiendasView = function() {
     // Configurar filtros la primera vez
     const userRole = String(APP_CONFIG.currentUser.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    const isAM = userRole === 'AM';
     
     const filterCuenta = document.getElementById('tiendas-filter-cuenta');
     const filterTienda = document.getElementById('tiendas-filter-tienda');
@@ -495,8 +496,8 @@ window.renderTiendasView = function() {
         
         window.updateSelectTiendas();
         
-        // Rellenar select de Usuarios (Solo Admin)
-        if (isAdmin && filterUsuario) {
+        // Rellenar select de Usuarios (Admin y AM)
+        if ((isAdmin || isAM) && filterUsuario) {
             filterUsuario.style.display = 'inline-block';
             const usuarios = [...new Set(stores.map(t => String(t.usuario || t.owner || '').trim()))].filter(Boolean).sort();
             filterUsuario.innerHTML = '<option value="all">Todos los Usuarios</option>';
@@ -534,6 +535,7 @@ window.renderTiendasGrid = function() {
     
     const userRole = String(APP_CONFIG.currentUser.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    const isAM = userRole === 'AM';
     
     const fCuenta = document.getElementById('tiendas-filter-cuenta').value;
     const fTienda = document.getElementById('tiendas-filter-tienda').value.toLowerCase().trim();
@@ -799,6 +801,7 @@ async function loadDashboard() {
         let userReports = (data.recentReports || []).filter(r => r && r.id && String(r.tienda || '').trim() !== '');
         const userRole = String(APP_CONFIG.currentUser.rol || '').trim().toUpperCase();
         const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+        const isAM = userRole === 'AM';
         
         if (!isAdmin) {
             const myEmail = String((APP_CONFIG.currentUser.email || APP_CONFIG.currentUser.usuario) || '').trim().toLowerCase();
@@ -842,6 +845,7 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
 
     const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
     const isAdmin = explicitIsAdmin !== null ? explicitIsAdmin : (userRole === 'ADMIN' || userRole === 'ADMINISTRADOR');
+    const isAM = userRole === 'AM';
     
     // Calcular estadísticas dinámicamente por estados específicos
     const countByStatus = (statusStr) => userReports.filter(r => String(r.estado || '').trim().toLowerCase().includes(statusStr)).length;
@@ -901,8 +905,14 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     const filterUsuario = document.getElementById('dash-filter-usuario');
     
     if (filterUsuario) {
-        filterUsuario.style.display = isAdmin ? 'inline-block' : 'none';
-        const users = [...new Set(userReports.map(r => String(r.usuario || '').trim()))].filter(Boolean).sort();
+        filterUsuario.style.display = (isAdmin || isAM) ? 'inline-block' : 'none';
+        let users = [...new Set(userReports.map(r => String(r.usuario || '').trim()))].filter(Boolean);
+        if (isAM) {
+            const myStores = APP_CONFIG.currentUser?.tiendas || [];
+            const myUsers = myStores.map(t => String(t.usuario || t.owner || '').trim()).filter(Boolean);
+            users = [...new Set([...users, ...myUsers])];
+        }
+        users.sort();
         filterUsuario.innerHTML = '<option value="all">Todos Usuarios</option>';
         users.forEach(u => {
             const opt = document.createElement('option');
@@ -2134,6 +2144,7 @@ window.filterDashboardTable = function() {
     
     const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    const isAM = userRole === 'AM';
     
     const filtered = reports.filter(r => {
         const matchCuenta = selCuenta === 'all' || String(r.cuenta || '').trim() === selCuenta;
@@ -5202,6 +5213,7 @@ window.openDashboardModal = function(status, category = null) {
 
     const userRole = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
+    const isAM = userRole === 'AM';
     
     const excelBtn = document.getElementById('export-excel-btn');
     if (excelBtn) {
@@ -5216,7 +5228,7 @@ window.openDashboardModal = function(status, category = null) {
     
     if (filtersEl) filtersEl.style.display = 'flex';
 
-    if (filterUsuario) filterUsuario.style.display = isAdmin ? '' : 'none';
+    if (filterUsuario) filterUsuario.style.display = (isAdmin || isAM) ? '' : 'none';
     if (filterEstado) filterEstado.style.display = isTodos ? '' : 'none';
     
     if (filterCuenta) {
@@ -5236,8 +5248,14 @@ window.openDashboardModal = function(status, category = null) {
         filterTienda.value = '';
     }
     
-    if (isAdmin && filterUsuario) {
-        const usuarios = [...new Set(statusFilteredList.map(r => String(r.usuario || '').trim()).filter(Boolean))].sort();
+    if ((isAdmin || isAM) && filterUsuario) {
+        let usuarios = [...new Set(statusFilteredList.map(r => String(r.usuario || '').trim()).filter(Boolean))];
+        if (isAM) {
+            const myStores = APP_CONFIG.currentUser?.tiendas || [];
+            const myUsers = myStores.map(t => String(t.usuario || t.owner || '').trim()).filter(Boolean);
+            usuarios = [...new Set([...usuarios, ...myUsers])];
+        }
+        usuarios.sort();
         filterUsuario.innerHTML = '<option value="all">Todos los Usuarios</option>';
         usuarios.forEach(u => filterUsuario.innerHTML += `<option value="${u}">${u}</option>`);
         filterUsuario.value = 'all';
