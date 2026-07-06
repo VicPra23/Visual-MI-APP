@@ -1014,12 +1014,13 @@ function resolveIncident(ss, data) {
       const reports = getFastValues(mobSheet);
       for (let i = 1; i < reports.length; i++) {
         if (reports[i][0] === id) {
-          mobSheet.getRange(i + 1, 12).setValue(status); // Columna L (índice 11) es Estado
-          mobSheet.getRange(i + 1, 13).setValue(calculateDaysFromDate(reports[i][1])); // Congelar tiempo
+          mobSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
+          mobSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
+          mobSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
           if (newPhotos) {
-            const oldPhotos = reports[i][13] || ''; // Columna N (índice 13) es Fotos
+            const oldPhotos = reports[i][17] || ''; // Columna R (índice 17) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
-            mobSheet.getRange(i + 1, 14).setValue(combinedPhotos);
+            mobSheet.getRange(i + 1, 18).setValue(combinedPhotos);
           }
           return { success: true };
         }
@@ -1035,11 +1036,12 @@ function resolveIncident(ss, data) {
         if (reports[i][0] === id) {
           foundAny = true;
           devSheet.getRange(i + 1, 17).setValue(status); // Columna Q (índice 16) es Estado
-          devSheet.getRange(i + 1, 18).setValue(calculateDaysFromDate(reports[i][1])); // Congelar tiempo
+          devSheet.getRange(i + 1, 18).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna R (índice 17) es Fecha Cierre
+          devSheet.getRange(i + 1, 19).setValue(calculateDaysFromDate(reports[i][1])); // Columna S (índice 18) es Tiempo
           if (newPhotos) {
-            const oldPhotos = reports[i][18] || ''; // Columna S (índice 18) es Fotos
+            const oldPhotos = reports[i][19] || ''; // Columna T (índice 19) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
-            devSheet.getRange(i + 1, 19).setValue(combinedPhotos);
+            devSheet.getRange(i + 1, 20).setValue(combinedPhotos);
           }
         }
       }
@@ -1055,18 +1057,40 @@ function resolveIncident(ss, data) {
         if (reports[i][0] === id) {
           foundAny = true;
           lonaSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
-          lonaSheet.getRange(i + 1, 16).setValue(calculateDaysFromDate(reports[i][1])); // Congelar tiempo
+          lonaSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
+          lonaSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
           if (newPhotos) {
-            const oldPhotos = reports[i][16] || ''; // Columna Q (índice 16) es Fotos
+            const oldPhotos = reports[i][17] || ''; // Columna R (índice 17) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
-            lonaSheet.getRange(i + 1, 17).setValue(combinedPhotos);
+            lonaSheet.getRange(i + 1, 18).setValue(combinedPhotos);
           }
         }
       }
       if (foundAny) return { success: true };
     }
     
-    // 4. Buscar en pestaña 'Incidencias Lanzamientos'
+    // 4. Buscar en pestaña 'Reporte Pantalla'
+    const screenSheet = getSheetDefensive(ss, 'Reporte Pantalla');
+    if (screenSheet) {
+      const reports = getFastValues(screenSheet);
+      let foundAny = false;
+      for (let i = 1; i < reports.length; i++) {
+        if (reports[i][0] === id) {
+          foundAny = true;
+          screenSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
+          screenSheet.getRange(i + 1, 10).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna J (índice 9) es Fecha Cierre
+          screenSheet.getRange(i + 1, 11).setValue(calculateDaysFromDate(reports[i][1])); // Columna K (índice 10) es Tiempo
+          if (newPhotos) {
+            const oldPhotos = reports[i][11] || ''; // Columna L (índice 11) es Fotos
+            const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
+            screenSheet.getRange(i + 1, 12).setValue(combinedPhotos);
+          }
+        }
+      }
+      if (foundAny) return { success: true };
+    }
+    
+    // 5. Buscar en pestaña 'Incidencias Lanzamientos'
     const incSheet = getSheetDefensive(ss, 'Incidencias Lanzamientos');
     if (incSheet) {
       const incs = getFastValues(incSheet);
