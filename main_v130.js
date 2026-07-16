@@ -1259,6 +1259,34 @@ window.showReportDetails = function(report) {
             <span class="modal-detail-value" style="font-weight: 500;">${report.tipo}</span>
         </div>
         
+        ${(report.codigoDispositivo || report.modelo || report.cantidad || report.enviar || (report.dispositivos && report.dispositivos.length > 0)) ? `
+        <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
+            <span class="modal-detail-label">Información Adicional:</span>
+            <span class="modal-detail-value" style="display:block; padding:0.5rem 0;">
+                ${report.enviar ? `<span style="display:block; margin-bottom:8px;"><b>Destino del Envío:</b> ${report.enviar}</span>` : ''}
+                
+                ${(report.dispositivos && report.dispositivos.length > 0) ? 
+                    report.dispositivos.map((d, index) => `
+                        <div style="background:#f0f2f5; padding:8px; border-radius:6px; margin-bottom:6px;">
+                            ${report.dispositivos.length > 1 ? `<b>#${index+1}</b><br>` : ''}
+                            ${d.modelo ? `<b>Modelo:</b> ${d.modelo}<br>` : ''}
+                            ${d.codigoDispositivo ? `<b>Código:</b> ${d.codigoDispositivo}<br>` : ''}
+                            ${d.cantidad ? `<b>Unidades:</b> ${d.cantidad}` : ''}
+                        </div>
+                    `).join('')
+                : `
+                    ${(report.modelo || report.codigoDispositivo || report.cantidad) ? `
+                        <div style="background:#f0f2f5; padding:8px; border-radius:6px; margin-bottom:6px;">
+                            ${report.modelo ? `<b>Modelo:</b> ${report.modelo}<br>` : ''}
+                            ${report.codigoDispositivo ? `<b>Código:</b> ${report.codigoDispositivo}<br>` : ''}
+                            ${report.cantidad ? `<b>Unidades:</b> ${report.cantidad}` : ''}
+                        </div>
+                    ` : ''}
+                `}
+            </span>
+        </div>
+        ` : ''}
+        
         <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
             <span class="modal-detail-label">Estado:</span>
             <span class="modal-detail-value" style="font-weight: 600; color:${String(report.estado).toLowerCase().includes('abiert') ? '#e74c3c' : String(report.estado).toLowerCase().includes('cerrad') ? '#2ecc71' : String(report.estado).toLowerCase().includes('pendiente') ? '#faad14' : '#1890ff'};">${report.estado}</span>
