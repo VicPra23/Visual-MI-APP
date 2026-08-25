@@ -1013,7 +1013,7 @@ function resolveIncident(ss, data) {
     if (mobSheet) {
       const reports = getFastValues(mobSheet);
       for (let i = 1; i < reports.length; i++) {
-        if (reports[i][0] === id) {
+        if (String(reports[i][0]).trim() === String(id).trim()) {
           mobSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
           mobSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
           mobSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
@@ -1033,7 +1033,7 @@ function resolveIncident(ss, data) {
       const reports = getFastValues(devSheet);
       let foundAny = false;
       for (let i = 1; i < reports.length; i++) {
-        if (reports[i][0] === id) {
+        if (String(reports[i][0]).trim() === String(id).trim()) {
           foundAny = true;
           devSheet.getRange(i + 1, 17).setValue(status); // Columna Q (índice 16) es Estado
           devSheet.getRange(i + 1, 18).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna R (índice 17) es Fecha Cierre
@@ -1054,7 +1054,7 @@ function resolveIncident(ss, data) {
       const reports = getFastValues(lonaSheet);
       let foundAny = false;
       for (let i = 1; i < reports.length; i++) {
-        if (reports[i][0] === id) {
+        if (String(reports[i][0]).trim() === String(id).trim()) {
           foundAny = true;
           lonaSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
           lonaSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
@@ -1075,7 +1075,7 @@ function resolveIncident(ss, data) {
       const reports = getFastValues(screenSheet);
       let foundAny = false;
       for (let i = 1; i < reports.length; i++) {
-        if (reports[i][0] === id) {
+        if (String(reports[i][0]).trim() === String(id).trim()) {
           foundAny = true;
           screenSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
           screenSheet.getRange(i + 1, 10).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna J (índice 9) es Fecha Cierre
@@ -1095,7 +1095,7 @@ function resolveIncident(ss, data) {
     if (incSheet) {
       const incs = getFastValues(incSheet);
       for (let i = 1; i < incs.length; i++) {
-        if (incs[i][0] === id) {
+        if (String(incs[i][0]).trim() === String(id).trim()) {
           incSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
           incSheet.getRange(i + 1, 10).setValue(calculateDaysFromDate(incs[i][1])); // Congelar tiempo
           if (newPhotos) {

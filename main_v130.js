@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycby-YIhk8YV9lz30ch0gSC-uDEOhDy87HEMHRSXnn-6byPVli_69zrelTvlYDigyPO7uDw/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbxbOo-kcq4QW56oz60DV3WjYPPiZc95sUcJ7aZplYoncTUYA0KwTdA0o3Tal8LjS65_bw/exec',
     currentUser: null,
     currentReport: {
         category: '',
