@@ -5,8 +5,44 @@
 const CONFIG = {
   SS_ID: "1Xht-QU2wRpWNBgT0dqyJkfM9SHD610mhO9y-W3lzonM",
   DRIVE_FOLDER_ID: "1e5uJurcqaTgDGfgHlp2vKyWmpOFhV_-U",
-  LOCK_TIMEOUT: 15000 
+  LOCK_TIMEOUT: 15000,
+  SESSION_TTL_SECONDS: 21600
 };
+
+function createSession(user) {
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  const session = {
+    email: String(user.email || '').trim().toLowerCase(),
+    rol: String(user.rol || '').trim().toUpperCase(),
+    expiresAt: Date.now() + CONFIG.SESSION_TTL_SECONDS * 1000
+  };
+  const serialized = JSON.stringify(session);
+  CacheService.getScriptCache().put('session:' + token, serialized, CONFIG.SESSION_TTL_SECONDS);
+  PropertiesService.getScriptProperties().setProperty('session:' + token, serialized);
+  return token;
+}
+
+function requireSession(token) {
+  if (!token) throw new Error('Sesión no válida o caducada');
+  const key = 'session:' + token;
+  const cache = CacheService.getScriptCache();
+  const serialized = cache.get(key) || PropertiesService.getScriptProperties().getProperty(key);
+  if (!serialized) throw new Error('Sesión no válida o caducada');
+  try {
+    const session = JSON.parse(serialized);
+    if (!session.expiresAt || Date.now() > session.expiresAt) {
+      cache.remove(key);
+      PropertiesService.getScriptProperties().deleteProperty(key);
+      throw new Error('Sesión no válida o caducada');
+    }
+    // Normalmente se resuelve desde caché; Properties solo es respaldo ante
+    // una expulsión puntual de la caché.
+    cache.put(key, serialized, Math.max(1, Math.floor((session.expiresAt - Date.now()) / 1000)));
+    return session;
+  } catch (e) {
+    throw new Error('Sesión no válida o caducada');
+  }
+}
 
 function doGet(e) {
   const callback = e.parameter.callback;
@@ -14,6 +50,9 @@ function doGet(e) {
     const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
     const action = e.parameter.action;
     
+    // El selector de acceso puede leer usuarios; todas las demás lecturas
+    // requieren una sesión emitida después de un login correcto.
+    const session = action === 'getUserList' ? null : requireSession(e.parameter.sessionToken);
     let result;
     switch (action) {
       case 'getUserList':
@@ -21,7 +60,7 @@ function doGet(e) {
         console.log("getUserList result:", result);
         break;
       case 'getDashboardData':
-        result = getDashboardData(ss, e.parameter.rol);
+        result = getDashboardData(ss, session.rol);
         break;
       case 'getLaunches':
         result = getDataFromSheet(ss, 'Lanzamientos');
@@ -64,12 +103,16 @@ function doPost(e) {
     
     const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
     const data = JSON.parse(e.postData.contents);
+    const session = data.action === 'login' ? null : requireSession(data.sessionToken);
     
     switch (data.action) {
       case 'getMaterials':
         return jsonResponse(getDataFromSheet(ss, 'Materiales'));
-      case 'login':
-        return jsonResponse(handleLogin(ss, data.email, data.password));
+      case 'login': {
+        const loginResult = handleLogin(ss, data.email, data.password);
+        if (loginResult.success) loginResult.sessionToken = createSession(loginResult.user);
+        return jsonResponse(loginResult);
+      }
       case 'submitReport':
         return jsonResponse(handleSubmitReport(ss, data));
       case 'submitLaunchChecklist':

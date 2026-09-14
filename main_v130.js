@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxbOo-kcq4QW56oz60DV3WjYPPiZc95sUcJ7aZplYoncTUYA0KwTdA0o3Tal8LjS65_bw/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbwi3mGbcrMn_pT59bF4v2aANg1AzeujwwBusd6z47q-jVTTMZonq7RfZoHy6OLtQ8Hd/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -17,7 +17,8 @@ const APP_CONFIG = {
     deviceCatalog: [], // Lista global bajada de 'Dispositivos'
     currentSelectedDevices: [], // Buffer temporal del reporte actual
     currentSelectedLonas: [],
-    currentSelectedAlarmados: []
+    currentSelectedAlarmados: [],
+    sessionToken: null
 };
 
 // --- MOTOR UNIVERSAL DE COMPRESIÓN Y RENDERIZADO (Baja Cobertura & CDN) ---
@@ -216,9 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function checkSession() {
     const savedUser = localStorage.getItem('xiaomi_user');
-    if (savedUser) {
+    const savedToken = localStorage.getItem('xiaomi_session_token');
+    if (savedUser && savedToken) {
         try {
             APP_CONFIG.currentUser = JSON.parse(savedUser);
+            APP_CONFIG.sessionToken = savedToken;
             startApp();
             return true;
         } catch(e) { return false; }
@@ -251,7 +254,9 @@ function setupNavigation() {
 
     logoutBtn.addEventListener('click', () => {
         APP_CONFIG.currentUser = null;
+        APP_CONFIG.sessionToken = null;
         localStorage.removeItem('xiaomi_user');
+        localStorage.removeItem('xiaomi_session_token');
         localStorage.removeItem('xiaomi_last_view');
         location.reload();
     });
@@ -1631,7 +1636,6 @@ window.showQuickBox = function(report) {
     const resArea = document.getElementById('quick-detail-resolution-area');
     const submitBtn = document.getElementById('submit-resolution-btn');
     const previewContainer = document.getElementById('resolve-photo-preview-container');
-    const fileInput = document.getElementById('resolve-photo-input');
     
     if (!box) return;
     
@@ -1671,7 +1675,6 @@ window.showQuickBox = function(report) {
     }
     
     submitBtn.disabled = true;
-    if (fileInput) fileInput.value = '';
     if (previewContainer) previewContainer.innerHTML = '';
     
     box.style.display = 'flex';
@@ -2597,7 +2600,9 @@ async function handleLogin(e) {
         console.log("Login Response:", response);
         if (response.success) {
             APP_CONFIG.currentUser = response.user;
+            APP_CONFIG.sessionToken = response.sessionToken;
             localStorage.setItem('xiaomi_user', JSON.stringify(response.user));
+            localStorage.setItem('xiaomi_session_token', response.sessionToken);
             startApp(true);
             
             // Solicitar permisos de notificación nativa
@@ -4098,6 +4103,11 @@ async function callApi(data) {
     if (!APP_CONFIG.scriptUrl) {
         console.warn('Apps Script URL not set. Returning mock data.');
         return mockApi(data);
+    }
+
+    // El backend valida este token antes de atender datos o cambios protegidos.
+    if (!['login', 'getUserList'].includes(data.action) && APP_CONFIG.sessionToken) {
+        data = { ...data, sessionToken: APP_CONFIG.sessionToken };
     }
 
     const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'markAllMessagesRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages'].includes(data.action);
