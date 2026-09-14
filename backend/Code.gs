@@ -104,6 +104,10 @@ function doPost(e) {
     const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
     const data = JSON.parse(e.postData.contents);
     const session = data.action === 'login' ? null : requireSession(data.sessionToken);
+    // Una incidencia nueva siempre entra como Abierta. La transición a
+    // Gestionado se controla exclusivamente en resolveIncident y requiere
+    // un administrador.
+    if (session && data.action === 'submitReport') data.estado = 'Abierta';
     
     switch (data.action) {
       case 'getMaterials':
@@ -122,7 +126,7 @@ function doPost(e) {
       case 'uploadFile':
         return jsonResponse(handleFileUpload(data));
       case 'resolveIncident':
-        return jsonResponse(resolveIncident(ss, data));
+        return jsonResponse(resolveIncident(ss, data, session));
       case 'getLaunchStatuses':
         return jsonResponse(getLaunchStatuses(ss, data.usuario, data.lanzamiento));
       case 'deleteLaunchValidation':
@@ -300,7 +304,7 @@ function getDashboardData(ss, rol) {
       if (!r[0]) return; 
       const est = String(r[14] || '').trim().toLowerCase(); 
       if (est === 'abierta') openTotal++;
-      if (est === 'pendiente') pendingTotal++;
+      if (est === 'gestionado') pendingTotal++;
       
       allReports.push({
         id: r[0],
@@ -344,7 +348,7 @@ function getDashboardData(ss, rol) {
       if (!devMap[id]) {
         const est = String(r[16] || '').trim().toLowerCase();
         if (est === 'abierta') openTotal++;
-        if (est === 'pendiente') pendingTotal++;
+        if (est === 'gestionado') pendingTotal++;
         
         devMap[id] = {
           id: id,
@@ -384,7 +388,7 @@ function getDashboardData(ss, rol) {
       if (!r[0]) return;
       const est = String(r[8] || '').trim().toLowerCase();
       if (est === 'abierta') openTotal++;
-      if (est === 'pendiente') pendingTotal++;
+      if (est === 'gestionado') pendingTotal++;
 
       allReports.push({
         id: r[0],
@@ -424,7 +428,7 @@ function getDashboardData(ss, rol) {
       if (!lonaMap[id]) {
         const est = String(r[14] || '').trim().toLowerCase();
         if (est === 'abierta') openTotal++;
-        if (est === 'pendiente') pendingTotal++;
+        if (est === 'gestionado') pendingTotal++;
         
         lonaMap[id] = {
           id: id,
@@ -566,7 +570,7 @@ function getLaunchStatuses(ss, usuario, lanzamiento) {
       if (lanzamiento && String(r[12] || '').trim().toLowerCase() !== String(lanzamiento).trim().toLowerCase()) return;
       
       const statusInc = String(r[8] || '').trim().toLowerCase();
-      // Solo si el incidente sigue Abierto o Pendiente lo forzamos
+      // El flujo de incidencias de lanzamientos se mantiene independiente.
       if (statusInc.includes('abiert') || statusInc.includes('pendient')) {
          // Si no existía en Validaciones lo creamos temporalmente para la vista
          if (!statuses[r[4]]) {
@@ -1019,6 +1023,46 @@ function hashAllPasswords() {
   }
 }
 
+// Ejecutar una única vez desde Apps Script después de desplegar esta versión.
+// Solo modifica las columnas Estado de los cuatro reportes; no toca mensajes
+// ni el flujo independiente de lanzamientos.
+function migrateIncidentStatuses() {
+  const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
+  const targets = [
+    ['Reporte mobiliario', 15],
+    ['Reporte dispositivo', 17],
+    ['Reporte Pantalla', 9],
+    ['Reportes Lonas', 15]
+  ];
+  let updated = 0;
+  const details = {};
+
+  targets.forEach(([sheetName, statusColumn]) => {
+    const sheet = getSheetDefensive(ss, sheetName);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    const range = sheet.getRange(2, statusColumn, sheet.getLastRow() - 1, 1);
+    const values = range.getValues();
+    let changed = 0;
+    values.forEach(row => {
+      const status = String(row[0] || '').trim().toLowerCase();
+      if (status === 'pendiente') {
+        row[0] = 'Gestionado';
+        changed++;
+      } else if (status === 'cerrado' || status === 'cerrada') {
+        // El flujo ya no contempla "Cerrado"; sus incidencias finalizadas
+        // pasan al estado final único, "Solucionado".
+        row[0] = 'Solucionado';
+        changed++;
+      }
+    });
+    if (changed) range.setValues(values);
+    details[sheetName] = changed;
+    updated += changed;
+  });
+
+  return { success: true, updated: updated, details: details };
+}
+
 function getDiagnostics(ss) {
   const sheets = ss.getSheets();
   const info = {};
@@ -1035,13 +1079,20 @@ function getDiagnostics(ss) {
   return { success: true, sheets: info };
 }
 
-function resolveIncident(ss, data) {
+function resolveIncident(ss, data, session) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
     
     const id = data.id;
-    const status = data.estado || data.status || 'Solucionado';
+    const status = String(data.estado || data.status || 'Solucionado').trim();
+    const isAdmin = session && (session.rol === 'ADMIN' || session.rol === 'ADMINISTRADOR');
+    if (!['Abierta', 'Gestionado', 'Solucionado'].includes(status)) {
+      return { success: false, error: 'Estado de incidencia no válido' };
+    }
+    if (status === 'Gestionado' && !isAdmin) {
+      return { success: false, error: 'Solo un administrador puede marcar una incidencia como gestionada' };
+    }
     const newPhotos = Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || '');
     
     function calculateDaysFromDate(dateVal) {

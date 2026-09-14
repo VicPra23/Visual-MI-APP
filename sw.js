@@ -1,7 +1,7 @@
-const CACHE_NAME = 'xiaomi-visual-app-v2';
+const CACHE_NAME = 'xiaomi-visual-app-v4';
 const urlsToCache = [
   './index.html',
-  './main_v130.js?v=138',
+  './main_v130.js?v=139',
   './style_v128.css?v=12',
   './manifest.json',
   './logo.png'

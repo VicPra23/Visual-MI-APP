@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbwi3mGbcrMn_pT59bF4v2aANg1AzeujwwBusd6z47q-jVTTMZonq7RfZoHy6OLtQ8Hd/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbwYCFxKoGnDsC0jyVXCdWW1n_DLzOQwv4oPrA5x4WAWnMZO0zcrfb6IYhkQEf0e0YnB4A/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -856,9 +856,8 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     const countByStatus = (statusStr) => userReports.filter(r => String(r.estado || '').trim().toLowerCase().includes(statusStr)).length;
     
     const openIncidents = countByStatus('abierta');
-    const pendingIncidents = countByStatus('pendiente');
+    const pendingIncidents = countByStatus('gestionado');
     const solvedIncidents = countByStatus('solucionado');
-    const closedIncidents = countByStatus('cerrada') + countByStatus('cerrado'); // handle variants
 
     // Actualizar estadísticas principales
     const statTotalEl = document.getElementById('stat-total');
@@ -873,7 +872,6 @@ function renderDashboardFromData(userReports, explicitIsAdmin = null) {
     setStat('stat-incidents-open', openIncidents);
     setStat('stat-incidents-pending', pendingIncidents);
     setStat('stat-incidents-solved', solvedIncidents);
-    setStat('stat-incidents-closed', closedIncidents);
     
     // Novedad: Estadísticas por Categoría
     const countByCategory = (catStr) => userReports.filter(r => String(r.categoria || '').trim().toLowerCase().includes(catStr)).length;
@@ -990,18 +988,16 @@ function renderDashboardTable(reports) {
         const est = String(r.estado || '').trim().toLowerCase();
         if (est === 'abierta') {
             statusClass = 'color:#e74c3c;font-weight:600'; // Rojo
-        } else if (est === 'cerrada') {
-            statusClass = 'color:#2ecc71;font-weight:600'; // Verde
-        } else if (est === 'pendiente') {
+        } else if (est === 'gestionado') {
             statusClass = 'color:#faad14;font-weight:600'; // Amarillo
         } else if (est === 'solucionado') {
-            statusClass = 'color:#1890ff;font-weight:600'; // Azul
+            statusClass = 'color:#2ecc71;font-weight:600'; // Verde
         }
         
         // Fix UX: Priorizar valor de tiempo de Excel, solo calcular dinámico si está vacío
         let rawTiempo = r.tiempo;
         let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
-        const isResolvedTiempo = est === 'solucionado' || est === 'cerrada' || est === 'cerrado' || est === 'realizado' || est === 'realizada';
+        const isResolvedTiempo = est === 'solucionado' || est === 'realizado' || est === 'realizada';
         
         if (displayTiempo !== '') {
             // Si está solucionado y el Excel manda '0' o un número fijo, lo respetamos para que no siga sumando.
@@ -1080,8 +1076,8 @@ function renderDashboardTable(reports) {
         };
         flexWrapper.appendChild(verBtn);
 
-        // BOTONES DE GESTIÓN UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
-        if (est === 'abierta' || est === 'pendiente') {
+        // Editar mientras la incidencia está abierta o gestionada.
+        if (est === 'abierta' || est === 'gestionado') {
             // Botón Editar (Lápiz azul-turquesa)
             const editBtn = document.createElement('button');
             editBtn.className = 'action-btn-circle';
@@ -1111,8 +1107,8 @@ function renderDashboardTable(reports) {
             }
         }
         
-        // BOTÓN UNIVERSAL: Marcar como Solucionado (para PENDIENTE, disponible para todos incl. Admin)
-        if (est === 'pendiente') {
+        // Una incidencia gestionada puede marcarse como solucionada.
+        if (est === 'gestionado') {
             const resBtn = document.createElement('button');
             resBtn.className = 'action-btn-circle';
             resBtn.style.color = '#52c41a';
@@ -1136,7 +1132,7 @@ function renderDashboardTable(reports) {
                 repairBtn.title = 'Marcar como Solicitado reparación';
                 repairBtn.onclick = async (e) => {
                     e.stopPropagation();
-                    await window.changeIncidentStatus(r.id, 'Pendiente');
+                    await window.changeIncidentStatus(r.id, 'Gestionado');
                 };
                 flexWrapper.appendChild(repairBtn);
             } else if (est === 'solucionado') {
@@ -1202,8 +1198,8 @@ window.showReportDetails = function(report) {
         if (estLower === 'abierta' || estLower === 'abierto') {
             adminActionsHtml = `
                 <div style="border-top: 1px solid var(--mi-border); padding-top: 1rem; margin-top: 1rem; display: flex; justify-content: flex-end;">
-                    <button class="btn-primary" id="admin-repair-btn" style="background:#ff6700; width:auto; padding:8px 16px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer;" onclick="window.changeIncidentStatus('${report.id}', 'Pendiente')">
-                        <i class="fas fa-tools"></i> Solicitado reparación
+                    <button class="btn-primary" id="admin-repair-btn" style="background:#ff6700; width:auto; padding:8px 16px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer;" onclick="window.changeIncidentStatus('${report.id}', 'Gestionado')">
+                        <i class="fas fa-tools"></i> Marcar como gestionado
                     </button>
                 </div>
             `;
@@ -1227,10 +1223,7 @@ window.showReportDetails = function(report) {
                         </div>
                         <div style="display:flex; gap:10px; justify-content:flex-end;">
                             <button class="btn-primary" style="background:#ff4d4f; width:auto; padding:8px 14px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer;" onclick="window.changeIncidentStatus('${report.id}', 'Abierta')">
-                                <i class="fas fa-times-circle"></i> No cerrado
-                            </button>
-                            <button class="btn-primary" style="background:#2ecc71; width:auto; padding:8px 14px; border-radius:6px; color:white; border:none; font-size:12px; font-weight:600; cursor:pointer;" onclick="window.changeIncidentStatus('${report.id}', 'Cerrado')">
-                                <i class="fas fa-check-circle"></i> Cerrado
+                                <i class="fas fa-times-circle"></i> Reabrir
                             </button>
                         </div>
                     </div>
@@ -1294,7 +1287,7 @@ window.showReportDetails = function(report) {
         
         <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
             <span class="modal-detail-label">Estado:</span>
-            <span class="modal-detail-value" style="font-weight: 600; color:${String(report.estado).toLowerCase().includes('abiert') ? '#e74c3c' : String(report.estado).toLowerCase().includes('cerrad') ? '#2ecc71' : String(report.estado).toLowerCase().includes('pendiente') ? '#faad14' : '#1890ff'};">${report.estado}</span>
+            <span class="modal-detail-value" style="font-weight: 600; color:${String(report.estado).toLowerCase().includes('abiert') ? '#e74c3c' : String(report.estado).toLowerCase().includes('gestion') ? '#faad14' : '#2ecc71'};">${report.estado}</span>
         </div>
         
         <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
@@ -1438,7 +1431,7 @@ window.downloadBulkExcel = async function() {
         if (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') {
             displayTiempo = String(rawTiempo).trim();
         }
-        const isResolvedTiempo = est === 'solucionado' || est.includes('cerrad') || est.includes('realizad');
+        const isResolvedTiempo = est === 'solucionado' || est.includes('realizad');
         
         if (displayTiempo !== '') {
             if (displayTiempo === '0' && !isResolvedTiempo) {
@@ -1503,13 +1496,10 @@ window.downloadBulkExcel = async function() {
         if (est.includes('abiert')) {
             stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEAEA' } };
             stateCell.font = { color: { argb: 'FFD93025' }, bold: true };
-        } else if (est.includes('pendiente')) {
+        } else if (est.includes('gestion')) {
             stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E5' } };
             stateCell.font = { color: { argb: 'FFE37400' }, bold: true };
         } else if (est.includes('solucionado')) {
-            stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FE' } };
-            stateCell.font = { color: { argb: 'FF1A73E8' }, bold: true };
-        } else if (est.includes('cerrad')) {
             stateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4EA' } };
             stateCell.font = { color: { argb: 'FF1E8E3E' }, bold: true };
         }
@@ -1584,6 +1574,11 @@ window.deleteDashboardReport = async function(id) {
 };
 
 window.changeIncidentStatus = async function(id, newStatus) {
+    const isAdmin = ['ADMIN', 'ADMINISTRADOR'].includes(String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase());
+    if (newStatus === 'Gestionado' && !isAdmin) {
+        alert('Solo un administrador puede marcar una incidencia como gestionada.');
+        return;
+    }
     const btn = document.activeElement;
     let originalText = '';
     if (btn) {
@@ -1648,21 +1643,18 @@ window.showQuickBox = function(report) {
     if (est === 'ABIERTA') {
         badge.style.background = '#e74c3c';
         badge.style.color = 'white';
-    } else if (est === 'PENDIENTE') {
+    } else if (est === 'GESTIONADO') {
         badge.style.background = '#faad14';
         badge.style.color = 'white';
-    } else if (est === 'CERRADA') {
-        badge.style.background = '#2ecc71';
-        badge.style.color = 'white';
     } else if (est === 'SOLUCIONADO') {
-        badge.style.background = '#1890ff';
+        badge.style.background = '#2ecc71';
         badge.style.color = 'white';
     } else {
         badge.style.background = '#95a5a6';
         badge.style.color = 'white';
     }
     
-    if (est === 'PENDIENTE' || est === 'ABIERTA') {
+    if (est === 'GESTIONADO') {
         resolveBtn.style.display = 'flex';
         resArea.style.display = 'block'; // Auto-desplegar por defecto para ahorrar un clic al usuario
     } else {
@@ -1671,7 +1663,7 @@ window.showQuickBox = function(report) {
     }
 
     if (editBtn) {
-        editBtn.style.display = (est === 'ABIERTA' || est === 'PENDIENTE') ? 'flex' : 'none';
+        editBtn.style.display = (est === 'ABIERTA' || est === 'GESTIONADO') ? 'flex' : 'none';
     }
     
     submitBtn.disabled = true;
@@ -2206,7 +2198,7 @@ window.filterDashboardTable = function() {
     
     function getSortValue(r) {
         const est = String(r.estado).trim().toLowerCase();
-        const isResolvedTiempo = est === 'solucionado' || est === 'cerrada' || est === 'cerrado' || est === 'realizado' || est === 'realizada';
+        const isResolvedTiempo = est === 'solucionado' || est === 'realizado' || est === 'realizada';
         let rawTiempo = r.tiempo;
         let displayTiempo = (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') ? String(rawTiempo).trim() : '';
         if (displayTiempo !== '') {
@@ -2288,18 +2280,18 @@ window.renderHistorialRows = function(items, isLanzamientos) {
         
         if (rawEst === 'abierta' || rawEst === 'incidente') {
             statusClass = 'color:#e74c3c;font-weight:600';
-        } else if (rawEst === 'realizado' || rawEst === 'cerrada' || rawEst === 'cerrado') {
+        } else if (rawEst === 'realizado') {
             statusClass = 'color:#2ecc71;font-weight:600';
-        } else if (rawEst === 'pendiente') {
+        } else if (rawEst === 'gestionado') {
             statusClass = 'color:#faad14;font-weight:600';
         } else if (rawEst === 'solucionado') {
-            statusClass = 'color:#1890ff;font-weight:600';
+            statusClass = 'color:#2ecc71;font-weight:600';
         }
         const refVal = isLanzamientos ? 'Lanzamiento' : (r.fecha || '-');
         const tiendaVal = isLanzamientos ? (r.nombre || r.tienda) : (r.tienda || '-');
         const usuarioVal = r.usuario || '-';
         const cuentaVal = r.cuenta || '-';
-        let estadoLabel = isLanzamientos && rawEst === 'pendiente' ? 'Pendiente' : (r.estado || 'Pendiente');
+        let estadoLabel = isLanzamientos && rawEst === 'pendiente' ? 'Pendiente' : (r.estado || 'Gestionado');
         
         const isAdmin = String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMIN' || 
                         String(APP_CONFIG.currentUser?.rol || '').trim().toUpperCase() === 'ADMINISTRADOR';
@@ -2347,8 +2339,8 @@ window.renderHistorialRows = function(items, isLanzamientos) {
             };
             flexWrapper.appendChild(verBtn);
 
-            // 2. BOTONES DE GESTIÓN UNIVERSAL: Editar (para ABIERTA y PENDIENTE) y Eliminar solo para estado ABIERTA
-            if (rawEst === 'abierta' || rawEst === 'abierto' || rawEst === 'pendiente') {
+            // Editar mientras la incidencia está abierta o gestionada.
+            if (rawEst === 'abierta' || rawEst === 'abierto' || rawEst === 'gestionado') {
                 // Botón Editar (Lápiz azul-turquesa)
                 const editBtn = document.createElement('button');
                 editBtn.className = 'action-btn-circle';
@@ -2380,8 +2372,8 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                 }
             }
             
-            // 3. Button "Incidencia Resuelta" (Para PENDIENTE y ABIERTA, visible universalmente)
-            if (rawEst === 'pendiente' || rawEst === 'abierta' || rawEst === 'abierto') {
+            // Una incidencia gestionada puede marcarse como solucionada.
+            if (rawEst === 'gestionado') {
                 const resBtn = document.createElement('button');
                 resBtn.className = 'action-btn-circle';
                 resBtn.style.color = '#52c41a'; // Verde éxito vibrante
@@ -2405,7 +2397,7 @@ window.renderHistorialRows = function(items, isLanzamientos) {
                     repBtn.onclick = async (e) => {
                         e.stopPropagation();
                         modal.style.display = 'none';
-                        await window.changeIncidentStatus(r.id, 'Pendiente');
+                        await window.changeIncidentStatus(r.id, 'Gestionado');
                     };
                     flexWrapper.appendChild(repBtn);
                 } else if (rawEst === 'solucionado') {
@@ -2445,7 +2437,6 @@ window.applyModalFilters = function() {
     if (!isTodos && !isLanzamientos) {
         statusFilteredItems = items.filter(r => {
             const est = String(r.estado || '').trim().toLowerCase();
-            if (targetStatus === 'cerrada') return est.includes('cerrada') || est.includes('cerrado');
             return est.includes(targetStatus);
         });
     }
@@ -2486,8 +2477,7 @@ window.applyModalFilters = function() {
         if (!isTodos && !isLanzamientos) {
             const est = String(r.estado || '').trim().toLowerCase();
             let matchStatus = false;
-            if (targetStatus === 'cerrada') matchStatus = est.includes('cerrada') || est.includes('cerrado');
-            else matchStatus = est.includes(targetStatus);
+            matchStatus = est.includes(targetStatus);
             if (!matchStatus) return false;
         }
         
@@ -2512,11 +2502,7 @@ window.applyModalFilters = function() {
         
         if (isTodos && estadoVal !== 'all') {
             const est = String(r.estado || '').trim().toLowerCase();
-            if (estadoVal === 'cerrada') {
-                if (!est.includes('cerrada') && !est.includes('cerrado')) return false;
-            } else {
-                if (!est.includes(estadoVal)) return false;
-            }
+            if (!est.includes(estadoVal)) return false;
         }
         
         return true;
@@ -2561,7 +2547,7 @@ window.filterToIncidents = function() {
     if (!APP_CONFIG.dashboardReports) return;
     let filtered = APP_CONFIG.dashboardReports.filter(r => {
         const est = String(r.estado || '').trim().toLowerCase();
-        return est === 'abierta' || est === 'pendiente';
+        return est === 'abierta' || est === 'gestionado';
     });
     
     window.showHistorialModal('Historial de Incidencias Activas', filtered, false);
@@ -3742,7 +3728,7 @@ async function submitFinalReport(event, type) {
             descripcion: desc,
             enviar: enviarVal,
             photos: APP_CONFIG.incidentUploadedPhotos,
-            estado: isFurniture ? 'Abierta' : 'Pendiente',
+            estado: 'Abierta',
             updateId: window.editingIncidentId || APP_CONFIG.currentReport.updateId || null
         };
         
@@ -5244,7 +5230,6 @@ window.openDashboardModal = function(status, category = null) {
     if (!isTodos) {
         statusFilteredList = baseList.filter(r => {
             const est = String(r.estado || '').trim().toLowerCase();
-            if (APP_CONFIG.currentModalStatus === 'cerrada') return est.includes('cerrada') || est.includes('cerrado');
             return est.includes(APP_CONFIG.currentModalStatus);
         });
     }
@@ -5521,8 +5506,7 @@ window.renderNotificationsView = function() {
         let iconClass = 'fa-exchange-alt';
         let colorClass = '#ffa940';
         if (n.newState.includes('SOLUCIONADO')) { iconClass = 'fa-check-circle'; colorClass = '#52c41a'; }
-        if (n.newState.includes('PENDIENTE')) { iconClass = 'fa-hourglass-half'; colorClass = '#faad14'; }
-        if (n.newState.includes('CERRAD')) { iconClass = 'fa-lock'; colorClass = '#bfbfbf'; }
+        if (n.newState.includes('GESTIONADO')) { iconClass = 'fa-hourglass-half'; colorClass = '#faad14'; }
 
         item.innerHTML = `
             <div class="msg-icon-box" style="background: ${colorClass}1a; color: ${colorClass}">
@@ -6040,8 +6024,7 @@ window.renderInboxList = function(filterType) {
             let colorClass = '#ffa940';
             const nState = String(n.newState || '').toUpperCase();
             if (nState.includes('SOLUCIONADO')) { iconClass = 'fa-check-circle'; colorClass = '#52c41a'; }
-            if (nState.includes('PENDIENTE')) { iconClass = 'fa-hourglass-half'; colorClass = '#faad14'; }
-            if (nState.includes('CERRAD')) { iconClass = 'fa-lock'; colorClass = '#bfbfbf'; }
+            if (nState.includes('GESTIONADO')) { iconClass = 'fa-hourglass-half'; colorClass = '#faad14'; }
             
             const borderLeft = item.isRead ? '#ddd' : colorClass;
             const unreadBg = item.isRead ? '#ffffff' : '#fafafa';

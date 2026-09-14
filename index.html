@@ -129,17 +129,13 @@
                             <h3><i class="fa fa-exclamation-circle" style="color: #ff4d4f;"></i> Abierta</h3>
                             <p id="stat-incidents-open" style="color: #ff4d4f; font-size: 1.8rem;">0</p>
                         </div>
-                        <div class="stat-card" onclick="openDashboardModal('pendiente')" style="cursor:pointer;">
-                            <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Pendiente</h3>
+                        <div class="stat-card" onclick="openDashboardModal('gestionado')" style="cursor:pointer;">
+                            <h3><i class="fa fa-hourglass-half" style="color: #faad14;"></i> Gestionado</h3>
                             <p id="stat-incidents-pending" style="color: #faad14; font-size: 1.8rem;">0</p>
                         </div>
                         <div class="stat-card" onclick="openDashboardModal('solucionado')" style="cursor:pointer;">
-                            <h3><i class="fa fa-check-circle" style="color: #1890ff;"></i> Solucionado</h3>
-                            <p id="stat-incidents-solved" style="color: #1890ff; font-size: 1.8rem;">0</p>
-                        </div>
-                        <div class="stat-card" onclick="openDashboardModal('cerrada')" style="cursor:pointer;">
-                            <h3><i class="fa fa-lock" style="color: #52c41a;"></i> Cerrado</h3>
-                            <p id="stat-incidents-closed" style="color: #52c41a; font-size: 1.8rem;">0</p>
+                            <h3><i class="fa fa-check-circle" style="color: #2ecc71;"></i> Solucionado</h3>
+                            <p id="stat-incidents-solved" style="color: #2ecc71; font-size: 1.8rem;">0</p>
                         </div>
                     </div>
                 </div> <!-- CLOSE dashboard-grid-composite -->
@@ -635,9 +631,8 @@
                             <select id="dash-filter-estado" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
                                 <option value="all">Todos Estados</option>
                                 <option value="abierta">Abierta</option>
-                                <option value="pendiente">Pendiente</option>
+                                <option value="gestionado">Gestionado</option>
                                 <option value="solucionado">Solucionado</option>
-                                <option value="cerrada">Cerrado</option>
                             </select>
                             <button onclick="clearDashboardFilters()" title="Limpiar Filtros" style="height: 36px; width: 36px; border-radius: 50%; border: 1px solid #e0e0e0; background: #fff; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.color='var(--mi-orange)'; this.style.borderColor='var(--mi-orange)';" onmouseout="this.style.color='#888'; this.style.borderColor='#e0e0e0';">
                                 <i class="fas fa-eraser"></i>
@@ -1084,9 +1079,8 @@
                 <select id="modal-filter-estado" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todos los Estados</option>
                     <option value="abierta">Abierta</option>
-                    <option value="pendiente">Pendiente</option>
+                    <option value="gestionado">Gestionado</option>
                     <option value="solucionado">Solucionado</option>
-                    <option value="cerrada">Cerrado</option>
                 </select>
                 <button id="export-excel-btn" onclick="window.downloadBulkExcel()" title="Descargar Excel" style="display: none; height: 36px; padding: 0 15px; background: #217346; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
                     <i class="fas fa-file-excel"></i> Excel
@@ -1289,7 +1283,7 @@
                     <h3 style="margin: 0; font-size: 1.25rem; color: var(--mi-black);">Resumen de Selección</h3>
                     <small style="color: var(--mi-gray-dark);">Marcar incidencia como resuelta</small>
                 </div>
-                <span id="quick-detail-status-badge" style="padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 600; font-size: 11px; text-transform: uppercase;">PENDIENTE</span>
+                <span id="quick-detail-status-badge" style="padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 600; font-size: 11px; text-transform: uppercase;">GESTIONADO</span>
             </div>
             
             <div class="form-grid-2col" style="gap: 1rem; margin-bottom: 1.5rem;">
@@ -1361,6 +1355,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
 
     <!-- Archivos principales de la aplicación -->
-    <script src="main_v130.js?v=138" defer></script>
+    <script src="main_v130.js?v=139" defer></script>
 </body>
 </html>
