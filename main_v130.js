@@ -2590,6 +2590,9 @@ async function handleLogin(e) {
             localStorage.setItem('xiaomi_user', JSON.stringify(response.user));
             localStorage.setItem('xiaomi_session_token', response.sessionToken);
             startApp(true);
+            // FIX: el catálogo de dispositivos se intentó cargar antes del login (sin sesión válida)
+            // y falló en silencio. Lo recargamos ahora que ya tenemos un sessionToken válido.
+            loadDeviceCatalog();
             
             // Solicitar permisos de notificación nativa
             if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
@@ -3228,7 +3231,13 @@ function resetLevels(type) {
     document.getElementById(`final-level-${type}`).classList.add('hidden');
 }
 
-function selectLevel(type, level, value) {
+async function selectLevel(type, level, value) {
+    // FIX: si el catálogo de dispositivos aún no se cargó (p.ej. sesión no lista en su momento),
+    // lo recargamos antes de filtrar, para que los productos no se queden vacíos.
+    if ((type === 'device' || type === 'furniture') && APP_CONFIG.deviceCatalog.length === 0) {
+        await loadDeviceCatalog();
+    }
+
     // Note: level passed here is 2, 3, or 4. Path index should be level - 1
     APP_CONFIG.currentReport.path = APP_CONFIG.currentReport.path.slice(0, level - 1);
     
