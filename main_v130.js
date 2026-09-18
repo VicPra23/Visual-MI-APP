@@ -2590,8 +2590,9 @@ async function handleLogin(e) {
             localStorage.setItem('xiaomi_user', JSON.stringify(response.user));
             localStorage.setItem('xiaomi_session_token', response.sessionToken);
             startApp(true);
-            // FIX: el catálogo de dispositivos se intentó cargar antes del login (sin sesión válida)
-            // y falló en silencio. Lo recargamos ahora que ya tenemos un sessionToken válido.
+            // FIX: loadDeviceCatalog() se intenta al cargar la página, antes del login, así que
+            // sin sessionToken el backend la rechaza y el catálogo queda vacío en silencio.
+            // Lo recargamos ahora que ya hay un sessionToken válido.
             loadDeviceCatalog();
             
             // Solicitar permisos de notificación nativa
@@ -3232,8 +3233,8 @@ function resetLevels(type) {
 }
 
 async function selectLevel(type, level, value) {
-    // FIX: si el catálogo de dispositivos aún no se cargó (p.ej. sesión no lista en su momento),
-    // lo recargamos antes de filtrar, para que los productos no se queden vacíos.
+    // FIX: red de seguridad — si el catálogo sigue vacío al llegar aquí (sesión no lista a
+    // tiempo, timeout, etc.), lo recargamos antes de filtrar en vez de dejar el desplegable vacío.
     if ((type === 'device' || type === 'furniture') && APP_CONFIG.deviceCatalog.length === 0) {
         await loadDeviceCatalog();
     }
@@ -4868,7 +4869,11 @@ window.submitLaunch = async function(event) {
         tienda: APP_CONFIG.currentLaunchStore.nombre,
         owner: APP_CONFIG.currentLaunchStore.owner || '',
         rms: APP_CONFIG.currentLaunchStore.rms || '',
-        lanzamiento: document.getElementById('launch-selector').value,
+        // FIX: 'launch-selector' no existe en el HTML (fue eliminado en un refactor anterior);
+        // esto hacía que submitLaunch() lanzara un error y el formulario nunca se enviara.
+        // Usamos el mismo patrón defensivo (?.value || '') que ya se usa en el resto del código
+        // para este mismo elemento (ver loadLaunchStores/updateLaunchCascade).
+        lanzamiento: document.getElementById('launch-selector')?.value || '',
         photos: APP_CONFIG.launchUploadedPhotos.join('\n'),
         q_lampara: document.getElementById('launch-q-lampara').value,
         q_ldu: document.getElementById('launch-q-ldu').value,
@@ -6375,10 +6380,67 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then(reg => {
             console.log('ServiceWorker registrado', reg);
+
+            // Si ya hay una versión nueva esperando (p.ej. se publicó mientras la app estaba cerrada)
+            if (reg.waiting) {
+                showUpdateBanner(reg);
+            }
+
+            // Detecta cuándo el navegador encuentra y empieza a instalar una versión nueva
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+                newWorker.addEventListener('statechange', () => {
+                    // 'installed' + ya había un controller = es una ACTUALIZACIÓN (no la primera instalación)
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        showUpdateBanner(reg);
+                    }
+                });
+            });
+
+            // Comprobación activa de versión nueva: cada 5 min y al volver a primer plano.
+            // Clave para quienes usan la app instalada (APK/PWA) y la dejan abierta mucho tiempo,
+            // ya que si nunca se cierra la pestaña, el navegador no comprueba solo si hay una versión nueva.
+            setInterval(() => reg.update(), 5 * 60 * 1000);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') reg.update();
+            });
+
         }).catch(err => {
             console.error('Error al registrar ServiceWorker', err);
         });
+
+        // Cuando la nueva versión toma el control, recargamos la página una sola vez
+        let swRefreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (swRefreshing) return;
+            swRefreshing = true;
+            window.location.reload();
+        });
     });
+}
+
+// Aviso fijo arriba de la pantalla: "Hay una nueva versión disponible"
+function showUpdateBanner(reg) {
+    if (document.getElementById('sw-update-banner')) return; // ya se está mostrando
+    const banner = document.createElement('div');
+    banner.id = 'sw-update-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#F35F35;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,0.25);flex-wrap:wrap;text-align:center;';
+    banner.innerHTML = `
+        <span><i class="fas fa-rotate-right"></i>&nbsp; Hay una nueva versión de la app disponible.</span>
+        <button id="sw-update-btn" style="background:#fff;color:#F35F35;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;">Actualizar ahora</button>
+    `;
+    document.body.prepend(banner);
+    document.getElementById('sw-update-btn').onclick = () => {
+        const btn = document.getElementById('sw-update-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
+        if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else {
+            // Por si acaso ya no hay 'waiting' (poco probable en este punto), forzamos recarga igualmente
+            window.location.reload();
+        }
+    };
 }
 
 // 2. Interceptar el evento de instalacin de PWA (Generar APK / Add to Home Screen)
