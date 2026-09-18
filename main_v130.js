@@ -3345,16 +3345,19 @@ async function selectLevel(type, level, value) {
         
         const filtered = APP_CONFIG.deviceCatalog.filter(d => {
             const itemTip = String(d.col0 || d.Tipologia || d['Tipologia'] || '').trim().toUpperCase();
+            const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
+            const normTipologyChosen = normalizeString(tipologyChosen);
             
-            // Flexibilidad: si en excel pone "LDU / DUMMY", matchTipology debe aceptar tanto LDU como DUMMY
-            let tipologyMatch = (itemTip === tipologyChosen);
-            if (!tipologyMatch && itemTip.includes(tipologyChosen)) {
-                tipologyMatch = true;
+            // FIX: la Tipología se saca principalmente de la columna B (Subcategoría), no de la A.
+            let tipologyMatch = (searchPayload === normTipologyChosen) || searchPayload.includes(normTipologyChosen);
+            
+            // Respaldo: si no hay coincidencia por columna B, probamos por columna A (Tipología)
+            // por si en alguna fila la clasificación está ahí en vez de en la B.
+            if (!tipologyMatch) {
+                tipologyMatch = (itemTip === tipologyChosen) || itemTip.includes(tipologyChosen);
             }
             
             if (!tipologyMatch) return false;
-            
-            const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
             
             if (tipologyChosen === 'POSM') {
                 const searchKey = normalizeString(subcategoryChosen);
@@ -3388,6 +3391,20 @@ async function selectLevel(type, level, value) {
                 dropdown.appendChild(opt);
             }
         });
+        
+        // FIX: diagnóstico en consola para saber al instante por qué está vacío el desplegable:
+        // ¿catálogo sin cargar, o simplemente no hay filas para esa Tipología en el Excel?
+        if (filtered.length === 0) {
+            if (APP_CONFIG.deviceCatalog.length === 0) {
+                console.warn('⚠️ El catálogo de dispositivos está vacío (0 cargados). No es un problema de filtro, es que no llegó a cargar.');
+            } else {
+                const tipologiasDisponibles = [...new Set(APP_CONFIG.deviceCatalog.map(d => String(d.col0 || '').trim().toUpperCase()).filter(Boolean))];
+                const subcategoriasDisponibles = [...new Set(APP_CONFIG.deviceCatalog.map(d => String(d.col1 || '').trim().toUpperCase()).filter(Boolean))];
+                console.warn(`⚠️ 0 dispositivos coinciden con Tipología="${tipologyChosen}" (Subcategoría="${subcategoryChosen}"). Catálogo cargado: ${APP_CONFIG.deviceCatalog.length} filas. Valores que SÍ existen en columna A (Tipología):`, tipologiasDisponibles, '| Valores que SÍ existen en columna B (Subcategoría):', subcategoriasDisponibles);
+            }
+        } else {
+            console.log(`✅ ${filtered.length} modelos encontrados para Tipología="${tipologyChosen}".`);
+        }
         
         if (level === 3) {
             const box = document.getElementById('device-models-box');
@@ -6413,6 +6430,7 @@ if ('serviceWorker' in navigator) {
         // Cuando la nueva versión toma el control, recargamos la página una sola vez
         let swRefreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('SW: controllerchange recibido, recargando...');
             if (swRefreshing) return;
             swRefreshing = true;
             window.location.reload();
@@ -6434,10 +6452,19 @@ function showUpdateBanner(reg) {
     document.getElementById('sw-update-btn').onclick = () => {
         const btn = document.getElementById('sw-update-btn');
         if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
+
+        // FIX: en algunos WebView usados para empaquetar la APK, 'controllerchange' no
+        // siempre se dispara de forma fiable, y el botón se quedaba en "Actualizando..."
+        // sin hacer nada. Como red de seguridad, forzamos la recarga a los 3s de todos modos.
+        const fallbackTimer = setTimeout(() => {
+            console.warn('SW: controllerchange no llegó a tiempo, forzando recarga manual.');
+            window.location.reload();
+        }, 3000);
+
         if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         } else {
-            // Por si acaso ya no hay 'waiting' (poco probable en este punto), forzamos recarga igualmente
+            clearTimeout(fallbackTimer);
             window.location.reload();
         }
     };

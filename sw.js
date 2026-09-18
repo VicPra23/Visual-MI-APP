@@ -1,7 +1,7 @@
-const CACHE_NAME = 'xiaomi-visual-app-v6';
+const CACHE_NAME = 'xiaomi-visual-app-v10';
 const urlsToCache = [
   './index.html',
-  './main_v130.js?v=141',
+  './main_v130.js?v=145',
   './style_v128.css?v=12',
   './manifest.json',
   './logo.png'
@@ -40,6 +40,7 @@ self.addEventListener('activate', event => {
 // plano" que active ya, en cuanto el usuario pulse "Actualizar ahora".
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('SW: mensaje SKIP_WAITING recibido, activando nueva versión...');
     self.skipWaiting();
   }
 });
