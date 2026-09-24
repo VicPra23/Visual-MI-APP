@@ -50,9 +50,9 @@ function doGet(e) {
     const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
     const action = e.parameter.action;
     
-    // El selector de acceso puede leer usuarios; todas las demás lecturas
-    // requieren una sesión emitida después de un login correcto.
-    const session = action === 'getUserList' ? null : requireSession(e.parameter.sessionToken);
+    // Lecturas públicas de catálogo (usuarios, dispositivos, materiales, lanzamientos) no requieren token
+    const isPublicAction = ['getUserList', 'getDevices', 'getMaterials', 'getLaunches'].includes(action);
+    const session = isPublicAction ? null : requireSession(e.parameter.sessionToken);
     let result;
     switch (action) {
       case 'getUserList':

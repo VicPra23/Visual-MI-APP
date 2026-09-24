@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbxXKXNsJkEGB9uWrLMxoLk6wYsoI0wKtjGGw8Qd9p-cYHKY7LQsUIDGunOJwi8IZ5-1xg/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbx1N3O3lybihoew-sXpeJSFjug8KlL3DK-W5LuAHFdCPnbdMkCvKCDTSI_ahJ58KLm5jg/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -2924,14 +2924,51 @@ function renderUsersToDropdown(users, select) {
 
 
 async function loadDeviceCatalog() {
+    // 1. Si ya está cargado en memoria, no hacer nada
+    if (APP_CONFIG.deviceCatalog && APP_CONFIG.deviceCatalog.length > 0) return;
+
+    // 2. Cargar instantáneamente desde localStorage (0 ms de espera)
     try {
-        const devices = await callApi({ action: 'getDevices' });
-        if (devices && Array.isArray(devices)) {
-            APP_CONFIG.deviceCatalog = devices;
-            console.log(`Loaded ${devices.length} devices into catalog.`);
+        const cached = localStorage.getItem('xiaomi_devices_cache');
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                APP_CONFIG.deviceCatalog = parsed;
+                console.log(`Loaded ${parsed.length} devices instantly from localStorage.`);
+            }
         }
     } catch (e) {
-        console.error('Error loading device catalog:', e);
+        console.warn('Error reading device cache:', e);
+    }
+
+    // 3. Si aún está vacío, cargar desde el archivo local estático devices.json
+    if (!APP_CONFIG.deviceCatalog || APP_CONFIG.deviceCatalog.length === 0) {
+        try {
+            const staticRes = await fetch('./devices.json');
+            if (staticRes.ok) {
+                const staticData = await staticRes.json();
+                const list = Array.isArray(staticData) ? staticData : (staticData.value || []);
+                if (list.length > 0) {
+                    APP_CONFIG.deviceCatalog = list;
+                    try { localStorage.setItem('xiaomi_devices_cache', JSON.stringify(list)); } catch (_) {}
+                    console.log(`Loaded ${list.length} devices from local devices.json.`);
+                }
+            }
+        } catch (e) {
+            console.warn('Error fetching static devices.json:', e);
+        }
+    }
+
+    // 4. En segundo plano, actualizar desde la API de Google Sheets
+    try {
+        const devices = await callApi({ action: 'getDevices' });
+        if (devices && Array.isArray(devices) && devices.length > 0) {
+            APP_CONFIG.deviceCatalog = devices;
+            try { localStorage.setItem('xiaomi_devices_cache', JSON.stringify(devices)); } catch (_) {}
+            console.log(`Updated ${devices.length} devices from Google Sheets API.`);
+        }
+    } catch (e) {
+        console.warn('API getDevices background notice:', e.message || e);
     }
 }
 
@@ -3393,7 +3430,7 @@ async function selectLevel(type, level, value) {
         }
         
         const filtered = APP_CONFIG.deviceCatalog.filter(d => {
-            const itemTip = String(d.col0 || d.Tipologia || d['Tipologia'] || '').trim().toUpperCase();
+            const itemTip = String(d.col0 || d['Tipología'] || d.Tipologia || d['Tipologia'] || '').trim().toUpperCase();
             
             // Flexibilidad: si en excel pone "LDU / DUMMY", matchTipology debe aceptar tanto LDU como DUMMY
             let tipologyMatch = (itemTip === tipologyChosen);
@@ -3403,7 +3440,7 @@ async function selectLevel(type, level, value) {
             
             if (!tipologyMatch) return false;
             
-            const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
+            const searchPayload = normalizeString(d.col1 || d['subcatergoría'] || d['Subcategoría'] || d.Subcategoria || d.subcategoria || '');
             
             if (tipologyChosen === 'POSM') {
                 const searchKey = normalizeString(subcategoryChosen);
@@ -3423,7 +3460,7 @@ async function selectLevel(type, level, value) {
         });
         
         filtered.forEach(d => {
-            // User confirma: Coger de la Columna C (col2) el modelo final para todos.
+            // Coger de la Columna C (col2) el modelo final
             const model = String(d.col2 || d.Modelo || '').trim();
             const code = d['Código Dispositivo'] || d.codigo || d.col3 || ''; 
             const repType = d['TIPO REPORTE'] || d['Tipo Reporte'] || d.col4 || d.col3 || '';
@@ -3431,7 +3468,7 @@ async function selectLevel(type, level, value) {
             if (model && model !== '' && model.toUpperCase() !== 'MODELO') {
                 const opt = document.createElement('option');
                 opt.value = model;
-                opt.textContent = model;
+                opt.textContent = code ? `${model} - ${code}` : model;
                 opt.dataset.code = code; 
                 opt.dataset.repType = repType; 
                 dropdown.appendChild(opt);
@@ -3439,16 +3476,24 @@ async function selectLevel(type, level, value) {
         });
         
         if (level === 3) {
-            const box = document.getElementById('device-models-box');
-            box.classList.remove('hidden');
-            
+            // En Nivel 3 (Subcategoría), mostrar suavemente el Motivo (Nivel 4)
             const nextBox = document.getElementById('device-l4');
-            if (nextBox) nextBox.classList.remove('hidden');
+            if (nextBox) {
+                nextBox.classList.remove('hidden');
+                nextBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            const finalBox = document.getElementById('final-level-device');
+            if (finalBox) finalBox.classList.add('hidden');
+        } else if (level === 4) {
+            // En Nivel 4 (Motivo), mostrar el formulario final y artículos
+            const box = document.getElementById('device-models-box');
+            if (box) box.classList.remove('hidden');
             
             const finalBox = document.getElementById('final-level-device');
-            if (finalBox) finalBox.classList.remove('hidden');
-            
-            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (finalBox) {
+                finalBox.classList.remove('hidden');
+                finalBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
     } else if (type === 'lona' && level === 3) {
         if (!window.isAutoloadingReport) {
@@ -3469,15 +3514,17 @@ async function selectLevel(type, level, value) {
         }
     }
     
-    // Show next level or final form
-    const nextLevel = level + 1;
-    const nextBox = document.getElementById(`${type}-l${nextLevel}`);
+    // Show next level or final form para el resto de categorías (mobiliario, pantalla, etc.)
+    if (type !== 'device' && type !== 'lona') {
+        const nextLevel = level + 1;
+        const nextBox = document.getElementById(`${type}-l${nextLevel}`);
 
-    if (nextBox) {
-        nextBox.classList.remove('hidden');
-        nextBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else if (type !== 'device' && type !== 'lona') {
-        showFinalForm(type);
+        if (nextBox) {
+            nextBox.classList.remove('hidden');
+            nextBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            showFinalForm(type);
+        }
     }
 }
 
