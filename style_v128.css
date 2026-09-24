@@ -1172,14 +1172,9 @@ textarea {
         font-size: 13px !important;
     }
     
-    /* Add labels using CSS pseudo-elements */
-    #recent-reports-table td:nth-of-type(1)::before { content: "Fecha"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
-    #recent-reports-table td:nth-of-type(2)::before { content: "Usuario"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
-    #recent-reports-table td:nth-of-type(3)::before { content: "Cuenta"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
-    #recent-reports-table td:nth-of-type(4)::before { content: "Tienda"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
-    #recent-reports-table td:nth-of-type(5)::before { content: "Tipo"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
-    #recent-reports-table td:nth-of-type(6)::before { content: "Tiempo"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
-    #recent-reports-table td:nth-of-type(7)::before { content: "Estado"; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
+    /* Add labels using CSS pseudo-elements or data-label */
+    #recent-reports-table td[data-label]::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; float: left; }
+    #recent-reports-table td.td-acciones,
     #recent-reports-table td:nth-of-type(8) {
         border-top: 1px dashed var(--border-main) !important;
         margin-top: 8px !important;
@@ -1187,7 +1182,8 @@ textarea {
         justify-content: center !important;
         text-align: center !important;
     }
-    #recent-reports-table td:nth-of-type(8)::before { content: ""; display: none !important; }
+    #recent-reports-table td.td-acciones::before,
+    #recent-reports-table td:nth-of-type(8)::before { content: "" !important; display: none !important; }
     
     /* Lanzamientos Mobile Filter sidebar & Store Grid */
     #view-lanzamientos > div {
@@ -1378,6 +1374,11 @@ textarea {
     #recent-reports-table tr {
         cursor: pointer;
     }
+    #recent-reports-table td.td-usuario,
+    #recent-reports-table td.td-cuenta,
+    #recent-reports-table td.td-tipo,
+    #recent-reports-table td.td-tiempo,
+    #recent-reports-table td.td-acciones,
     #recent-reports-table td:nth-of-type(2),
     #recent-reports-table td:nth-of-type(3),
     #recent-reports-table td:nth-of-type(5),
@@ -1385,11 +1386,18 @@ textarea {
     #recent-reports-table td:nth-of-type(8) {
         display: none !important;
     }
-    #recent-reports-table tr.expanded td:nth-of-type(2),
+    #recent-reports-table tr.expanded td.td-cuenta,
+    #recent-reports-table tr.expanded td.td-tipo,
+    #recent-reports-table tr.expanded td.td-tiempo,
+    #recent-reports-table tr.expanded td.td-acciones,
     #recent-reports-table tr.expanded td:nth-of-type(3),
     #recent-reports-table tr.expanded td:nth-of-type(5),
     #recent-reports-table tr.expanded td:nth-of-type(6),
     #recent-reports-table tr.expanded td:nth-of-type(8) {
+        display: flex !important;
+    }
+    #recent-reports-table tr.expanded td.td-usuario:not([style*="display: none"]):not([style*="display:none"]),
+    #recent-reports-table tr.expanded td:nth-of-type(2):not([style*="display: none"]):not([style*="display:none"]) {
         display: flex !important;
     }
     

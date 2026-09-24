@@ -6,7 +6,7 @@ const CONFIG = {
   SS_ID: "1Xht-QU2wRpWNBgT0dqyJkfM9SHD610mhO9y-W3lzonM",
   DRIVE_FOLDER_ID: "1e5uJurcqaTgDGfgHlp2vKyWmpOFhV_-U",
   LOCK_TIMEOUT: 15000,
-  SESSION_TTL_SECONDS: 21600
+  SESSION_TTL_SECONDS: 2592000 // 30 días
 };
 
 function createSession(user) {
@@ -438,7 +438,7 @@ function getDashboardData(ss, rol) {
           tienda: r[4],
           categoria: 'Lona',
           tipologia: r[7] || '', 
-          subcategoria: r[7] || '', // Usamos tipologa como subcategora para compatibilidad de la vista
+          subcategoria: r[7] || '', // Usamos tipología como subcategoría para compatibilidad de la vista
           enviar: r[12] || '',
           motivo: r[8] || '',
           descripcion: r[13] || '',
@@ -632,7 +632,13 @@ function handleSubmitReport(ss, data) {
   
     // Si encontramos un owner en Tiendas o vino desde frontend, lo usamos. Si no, usamos el usuario actual.
     const finalUser = owner || data.usuario || '';
-    const now = new Date();
+    let now = new Date();
+    if (data.updateId && data.originalFecha) {
+      const parsedOrig = new Date(String(data.originalFecha).replace(/-/g, '/'));
+      if (!isNaN(parsedOrig.getTime())) {
+        now = parsedOrig;
+      }
+    }
     const finalPhotos = Array.isArray(data.photos) ? data.photos.join('\n') : (data.photos || '');
     
     const isFurniture = String(data.categoria).toLowerCase() === 'mobiliario';
@@ -758,12 +764,12 @@ function handleSubmitReport(ss, data) {
           finalUser,               // 3. Usuario
           cuenta,                  // 4. Cuenta
           data.tienda || '',       // 5. Tienda
-          rms,                     // 6. Cdigo RMS
-          data.categoria,          // 7. Categora
-          data.tipologia || '',    // 8. Tipologa
+          rms,                     // 6. Código RMS
+          data.categoria,          // 7. Categoría
+          data.tipologia || '',    // 8. Tipología
           data.motivo || '',       // 9. Motivo
           item.modelo || '',       // 10. Modelo
-          item.codigoDispositivo || '', // 11. Cdigo Dispositivo
+          item.codigoDispositivo || '', // 11. Código Dispositivo
           item.cantidad || 1,      // 12. Cantidad
           data.enviar || '',       // 13. Enviar
           data.descripcion || '',  // 14. Comentario
@@ -1109,8 +1115,13 @@ function resolveIncident(ss, data, session) {
       for (let i = 1; i < reports.length; i++) {
         if (String(reports[i][0]).trim() === String(id).trim()) {
           mobSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
-          mobSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
-          mobSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
+          if (status === 'Solucionado') {
+            mobSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
+            mobSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
+          } else {
+            mobSheet.getRange(i + 1, 16).setValue('');
+            mobSheet.getRange(i + 1, 17).setValue('');
+          }
           if (newPhotos) {
             const oldPhotos = reports[i][17] || ''; // Columna R (índice 17) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -1130,8 +1141,13 @@ function resolveIncident(ss, data, session) {
         if (String(reports[i][0]).trim() === String(id).trim()) {
           foundAny = true;
           devSheet.getRange(i + 1, 17).setValue(status); // Columna Q (índice 16) es Estado
-          devSheet.getRange(i + 1, 18).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna R (índice 17) es Fecha Cierre
-          devSheet.getRange(i + 1, 19).setValue(calculateDaysFromDate(reports[i][1])); // Columna S (índice 18) es Tiempo
+          if (status === 'Solucionado') {
+            devSheet.getRange(i + 1, 18).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna R (índice 17) es Fecha Cierre
+            devSheet.getRange(i + 1, 19).setValue(calculateDaysFromDate(reports[i][1])); // Columna S (índice 18) es Tiempo
+          } else {
+            devSheet.getRange(i + 1, 18).setValue('');
+            devSheet.getRange(i + 1, 19).setValue('');
+          }
           if (newPhotos) {
             const oldPhotos = reports[i][19] || ''; // Columna T (índice 19) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -1151,8 +1167,13 @@ function resolveIncident(ss, data, session) {
         if (String(reports[i][0]).trim() === String(id).trim()) {
           foundAny = true;
           lonaSheet.getRange(i + 1, 15).setValue(status); // Columna O (índice 14) es Estado
-          lonaSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
-          lonaSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
+          if (status === 'Solucionado') {
+            lonaSheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna P (índice 15) es Fecha Cierre
+            lonaSheet.getRange(i + 1, 17).setValue(calculateDaysFromDate(reports[i][1])); // Columna Q (índice 16) es Tiempo
+          } else {
+            lonaSheet.getRange(i + 1, 16).setValue('');
+            lonaSheet.getRange(i + 1, 17).setValue('');
+          }
           if (newPhotos) {
             const oldPhotos = reports[i][17] || ''; // Columna R (índice 17) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -1172,8 +1193,13 @@ function resolveIncident(ss, data, session) {
         if (String(reports[i][0]).trim() === String(id).trim()) {
           foundAny = true;
           screenSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
-          screenSheet.getRange(i + 1, 10).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna J (índice 9) es Fecha Cierre
-          screenSheet.getRange(i + 1, 11).setValue(calculateDaysFromDate(reports[i][1])); // Columna K (índice 10) es Tiempo
+          if (status === 'Solucionado') {
+            screenSheet.getRange(i + 1, 10).setValue(Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone() || "GMT", "yyyy-MM-dd HH:mm:ss")); // Columna J (índice 9) es Fecha Cierre
+            screenSheet.getRange(i + 1, 11).setValue(calculateDaysFromDate(reports[i][1])); // Columna K (índice 10) es Tiempo
+          } else {
+            screenSheet.getRange(i + 1, 10).setValue('');
+            screenSheet.getRange(i + 1, 11).setValue('');
+          }
           if (newPhotos) {
             const oldPhotos = reports[i][11] || ''; // Columna L (índice 11) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -1191,7 +1217,11 @@ function resolveIncident(ss, data, session) {
       for (let i = 1; i < incs.length; i++) {
         if (String(incs[i][0]).trim() === String(id).trim()) {
           incSheet.getRange(i + 1, 9).setValue(status); // Columna I (índice 8) es Estado
-          incSheet.getRange(i + 1, 10).setValue(calculateDaysFromDate(incs[i][1])); // Congelar tiempo
+          if (status === 'Solucionado') {
+            incSheet.getRange(i + 1, 10).setValue(calculateDaysFromDate(incs[i][1])); // Congelar tiempo
+          } else {
+            incSheet.getRange(i + 1, 10).setValue('');
+          }
           if (newPhotos) {
             const oldPhotos = incs[i][10] || ''; // Columna K (índice 10) es Fotos
             const combinedPhotos = oldPhotos ? oldPhotos + '\n' + newPhotos : newPhotos;
@@ -1208,6 +1238,139 @@ function resolveIncident(ss, data, session) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * DISPARADOR AUTOMÁTICO DE HOJA DE CÁLCULO (Google Sheets onEdit)
+ * Se ejecuta automáticamente cada vez que un usuario edita manualmente una celda en Google Sheets / Excel.
+ * Automatiza el registro de Fecha Cierre y el recálculo de Tiempo.
+ */
+function onEdit(e) {
+  if (!e || !e.range) return;
+  const sheet = e.range.getSheet();
+  const sheetName = sheet.getName();
+  
+  let colEstado = -1;
+  let colFechaCierre = -1;
+  let colTiempo = -1;
+  let colFecha = 2; // Columna B es Fecha en todas
+  
+  if (sheetName === 'Reporte mobiliario' || sheetName === 'Reportes Lonas') {
+    colEstado = 15;      // Col O
+    colFechaCierre = 16;  // Col P
+    colTiempo = 17;       // Col Q
+  } else if (sheetName === 'Reporte dispositivo') {
+    colEstado = 17;      // Col Q
+    colFechaCierre = 18;  // Col R
+    colTiempo = 19;       // Col S
+  } else if (sheetName === 'Reporte Pantalla') {
+    colEstado = 9;       // Col I
+    colFechaCierre = 10;  // Col J
+    colTiempo = 11;      // Col K
+  } else {
+    return; // No es una de las hojas de reportes
+  }
+  
+  const startRow = e.range.getRow();
+  const numRows = e.range.getNumRows();
+  const startCol = e.range.getColumn();
+  const numCols = e.range.getNumColumns();
+  const endRow = startRow + numRows - 1;
+  const endCol = startCol + numCols - 1;
+  
+  const tz = sheet.getParent().getSpreadsheetTimeZone() || "GMT";
+  
+  for (let r = Math.max(2, startRow); r <= endRow; r++) {
+    // Caso 1: El usuario editó la columna de Estado
+    if (startCol <= colEstado && endCol >= colEstado) {
+      const val = String(sheet.getRange(r, colEstado).getValue() || '').trim().toLowerCase();
+      const isClosed = (val === 'solucionado' || val === 'cerrado' || val === 'cerrada');
+      
+      if (isClosed) {
+        // Si la fecha de cierre está vacía, poner fecha/hora actual
+        const currentFechaCierre = sheet.getRange(r, colFechaCierre).getValue();
+        const closeDate = currentFechaCierre ? new Date(currentFechaCierre) : new Date();
+        if (!currentFechaCierre) {
+          sheet.getRange(r, colFechaCierre).setValue(Utilities.formatDate(closeDate, tz, "yyyy-MM-dd HH:mm:ss"));
+        }
+        // Calcular días transcurridos entre Columna 2 (Fecha) y closeDate
+        const fechaCreacion = sheet.getRange(r, colFecha).getValue();
+        if (fechaCreacion) {
+          const dCreacion = new Date(fechaCreacion);
+          if (!isNaN(dCreacion.getTime())) {
+            const diffDays = Math.max(0, Math.floor(Math.abs(closeDate.getTime() - dCreacion.getTime()) / (1000 * 60 * 60 * 24)));
+            sheet.getRange(r, colTiempo).setValue(diffDays);
+          }
+        }
+      } else if (val === 'abierta' || val === 'abierto' || val === 'gestionado') {
+        // Reabierto: Limpiar fecha de cierre y tiempo congelado
+        sheet.getRange(r, colFechaCierre).setValue('');
+        sheet.getRange(r, colTiempo).setValue('');
+      }
+    }
+    
+    // Caso 2: El usuario editó manualmente la columna de Fecha Cierre
+    if (startCol <= colFechaCierre && endCol >= colFechaCierre) {
+      const cierreVal = sheet.getRange(r, colFechaCierre).getValue();
+      if (cierreVal) {
+        const dCierre = new Date(cierreVal);
+        const fechaCreacion = sheet.getRange(r, colFecha).getValue();
+        if (fechaCreacion && !isNaN(dCierre.getTime())) {
+          const dCreacion = new Date(fechaCreacion);
+          if (!isNaN(dCreacion.getTime())) {
+            const diffDays = Math.max(0, Math.floor(Math.abs(dCierre.getTime() - dCreacion.getTime()) / (1000 * 60 * 60 * 24)));
+            sheet.getRange(r, colTiempo).setValue(diffDays);
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Utilidad para recalcular masivamente todas las incidencias 'Solucionado' existentes
+ * en las 4 hojas que tengan Fecha Cierre o Tiempo vacío.
+ */
+function recalculateAllClosedReports() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetsConfig = [
+    { name: 'Reporte mobiliario', colEstado: 15, colFechaCierre: 16, colTiempo: 17, colFecha: 2 },
+    { name: 'Reporte dispositivo', colEstado: 17, colFechaCierre: 18, colTiempo: 19, colFecha: 2 },
+    { name: 'Reporte Pantalla', colEstado: 9, colFechaCierre: 10, colTiempo: 11, colFecha: 2 },
+    { name: 'Reportes Lonas', colEstado: 15, colFechaCierre: 16, colTiempo: 17, colFecha: 2 }
+  ];
+  
+  const tz = ss.getSpreadsheetTimeZone() || "GMT";
+  let countUpdated = 0;
+  
+  sheetsConfig.forEach(cfg => {
+    const sh = ss.getSheetByName(cfg.name);
+    if (!sh) return;
+    const data = sh.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const est = String(row[cfg.colEstado - 1] || '').trim().toLowerCase();
+      if (est === 'solucionado' || est === 'cerrado' || est === 'cerrada') {
+        let fCierre = row[cfg.colFechaCierre - 1];
+        let dCierre = fCierre ? new Date(fCierre) : new Date();
+        if (!fCierre) {
+          fCierre = Utilities.formatDate(dCierre, tz, "yyyy-MM-dd HH:mm:ss");
+          sh.getRange(i + 1, cfg.colFechaCierre).setValue(fCierre);
+        }
+        const fCreacion = row[cfg.colFecha - 1];
+        if (fCreacion) {
+          const dCreacion = new Date(fCreacion);
+          if (!isNaN(dCreacion.getTime()) && !isNaN(dCierre.getTime())) {
+            const diffDays = Math.max(0, Math.floor(Math.abs(dCierre.getTime() - dCreacion.getTime()) / (1000 * 60 * 60 * 24)));
+            sh.getRange(i + 1, cfg.colTiempo).setValue(diffDays);
+            countUpdated++;
+          }
+        }
+      }
+    }
+  });
+  Logger.log("✅ Recálculo completado: " + countUpdated + " reportes actualizados.");
+  return countUpdated;
 }
 
 /**

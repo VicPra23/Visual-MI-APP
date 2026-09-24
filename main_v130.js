@@ -3,7 +3,7 @@
  */
 
 const APP_CONFIG = {
-    scriptUrl: 'https://script.google.com/macros/s/AKfycbwYCFxKoGnDsC0jyVXCdWW1n_DLzOQwv4oPrA5x4WAWnMZO0zcrfb6IYhkQEf0e0YnB4A/exec',
+    scriptUrl: 'https://script.google.com/macros/s/AKfycbxXKXNsJkEGB9uWrLMxoLk6wYsoI0wKtjGGw8Qd9p-cYHKY7LQsUIDGunOJwi8IZ5-1xg/exec',
     currentUser: null,
     currentReport: {
         category: '',
@@ -218,10 +218,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function checkSession() {
     const savedUser = localStorage.getItem('xiaomi_user');
     const savedToken = localStorage.getItem('xiaomi_session_token');
-    if (savedUser && savedToken) {
+    if (savedUser) {
         try {
             APP_CONFIG.currentUser = JSON.parse(savedUser);
-            APP_CONFIG.sessionToken = savedToken;
+            APP_CONFIG.sessionToken = savedToken || '';
             startApp();
             return true;
         } catch(e) { return false; }
@@ -769,6 +769,9 @@ async function loadDashboard() {
             APP_CONFIG.currentUser = JSON.parse(saved);
         }
     }
+    if (!APP_CONFIG.sessionToken) {
+        APP_CONFIG.sessionToken = localStorage.getItem('xiaomi_session_token') || '';
+    }
     
     if (!APP_CONFIG.currentUser) {
         console.warn("Sesión perdida.");
@@ -975,11 +978,14 @@ function renderDashboardTable(reports) {
     
     reports.forEach(r => {
         const row = document.createElement('tr');
+        row.style.cursor = 'pointer';
+        row.title = 'Haz clic para operar la incidencia';
         row.onclick = function(e) {
+            if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
             if (window.innerWidth <= 768) {
-                // Prevenir que se expanda/cierre si se hace click directamente en un botón de acción
-                if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
                 this.classList.toggle('expanded');
+            } else {
+                showQuickBox(r);
             }
         };
         
@@ -1044,21 +1050,20 @@ function renderDashboardTable(reports) {
             }
         }
         
-        const usuarioTd = isAdmin ? `<td>${r.usuario}</td>` : '';
+        const usuarioTd = isAdmin 
+            ? `<td data-label="Usuario" class="td-usuario">${r.usuario}</td>` 
+            : `<td data-label="Usuario" class="td-usuario" style="display:none;">${r.usuario}</td>`;
         
         row.innerHTML = `
-            <td>${r.fecha}</td>
+            <td data-label="Fecha" class="td-fecha">${r.fecha}</td>
             ${usuarioTd}
-            <td>${r.cuenta}</td>
-            <td>${r.tienda}</td>
-            <td>${r.tipo}</td>
-            <td style="font-weight:500;">${displayTiempo}</td>
-            <td style="${statusClass}">${r.estado}</td>
-            <td style="text-align:center;"></td>
+            <td data-label="Cuenta" class="td-cuenta">${r.cuenta}</td>
+            <td data-label="Tienda" class="td-tienda">${r.tienda}</td>
+            <td data-label="Tipo" class="td-tipo">${r.tipo}</td>
+            <td data-label="Tiempo" class="td-tiempo" style="font-weight:500;">${displayTiempo}</td>
+            <td data-label="Estado" class="td-estado" style="${statusClass}">${r.estado}</td>
+            <td data-label="Acciones" class="td-acciones" style="text-align:center;"></td>
         `;
-        row.style.cursor = 'pointer';
-        row.title = 'Haz clic para operar la incidencia';
-        row.onclick = () => showQuickBox(r);
         
         const actionTd = row.querySelector('td:last-child');
         const flexWrapper = document.createElement('div');
@@ -1232,6 +1237,26 @@ window.showReportDetails = function(report) {
         }
     }
     
+    let detailTiempo = '';
+    const rawTiempo = report.tiempo;
+    if (rawTiempo !== undefined && rawTiempo !== null && rawTiempo !== '') {
+        detailTiempo = String(rawTiempo).trim();
+        if (!isNaN(detailTiempo)) {
+            const num = parseInt(detailTiempo);
+            detailTiempo = (num < 0 ? 0 : num) + ' días';
+        }
+    }
+    if (!detailTiempo && report.fecha) {
+        const repDate = new Date(String(report.fecha).replace(/-/g, '/'));
+        if (!isNaN(repDate.getTime())) {
+            const endDate = report.fechaCierre ? new Date(String(report.fechaCierre).replace(/-/g, '/')) : new Date();
+            if (!isNaN(endDate.getTime())) {
+                const diffTime = Math.max(0, Math.floor(Math.abs(endDate.getTime() - repDate.getTime()) / (1000 * 60 * 60 * 24)));
+                detailTiempo = `${diffTime} días`;
+            }
+        }
+    }
+    
     container.innerHTML = `
         <div class="form-grid-2col" style="gap:1rem;">
             <div class="modal-detail-item">
@@ -1289,6 +1314,20 @@ window.showReportDetails = function(report) {
             <span class="modal-detail-label">Estado:</span>
             <span class="modal-detail-value" style="font-weight: 600; color:${String(report.estado).toLowerCase().includes('abiert') ? '#e74c3c' : String(report.estado).toLowerCase().includes('gestion') ? '#faad14' : '#2ecc71'};">${report.estado}</span>
         </div>
+        
+        ${report.fechaCierre ? `
+        <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
+            <span class="modal-detail-label">Fecha de Cierre:</span>
+            <span class="modal-detail-value" style="font-weight: 500;">${report.fechaCierre}</span>
+        </div>
+        ` : ''}
+
+        ${detailTiempo ? `
+        <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
+            <span class="modal-detail-label">Tiempo de Resolución:</span>
+            <span class="modal-detail-value" style="font-weight: 500;">${detailTiempo}</span>
+        </div>
+        ` : ''}
         
         <div class="modal-detail-item" style="border-top: 1px solid var(--mi-border); padding-top: 0.8rem;">
             <span class="modal-detail-label">Comentario:</span>
@@ -1407,6 +1446,7 @@ window.downloadBulkExcel = async function() {
         { header: 'Motivo', key: 'motivo', width: 25 },
         { header: 'Descripción', key: 'descripcion', width: 50 },
         { header: 'Estado', key: 'estado', width: 15 },
+        { header: 'Fecha Cierre', key: 'fechaCierre', width: 20 },
         { header: 'Tiempo (días)', key: 'tiempo', width: 15 }
     ];
     
@@ -1486,6 +1526,7 @@ window.downloadBulkExcel = async function() {
             motivo: r.motivo,
             descripcion: r.descripcion,
             estado: r.estado,
+            fechaCierre: r.fechaCierre || '',
             tiempo: displayTiempo
         };
         
@@ -1722,6 +1763,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
         
         // NUEVO: Activar MODO EDICIÓN y ESCUDO DE PRECARGA ANTIBORRADO (Establecido estrictamente TRAS el reset!)
         window.editingIncidentId = r.id || '';
+        window.editingIncidentDate = r.fecha || '';
         window.isAutoloadingReport = true; // Bloquea reseteos del array durante clics automáticos
         const banner = document.getElementById('editing-mode-banner');
         if (banner) {
@@ -1869,12 +1911,13 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 if (envSel && r.enviar) envSel.value = r.enviar;
                 
                 // PRECARGAR FOTOS ANTERIORES SI EXISTEN
-                if (r.foto && typeof r.foto === 'string') {
-                    const urls = r.foto.split(',').map(u => u.trim()).filter(u => u && u.startsWith('http'));
+                const existingPhotos = r.fotos || r.foto;
+                if (existingPhotos && typeof existingPhotos === 'string') {
+                    const urls = existingPhotos.split(/[\n,]+/).map(u => u.trim()).filter(u => u && u.startsWith('http'));
                     if (urls.length > 0) {
                         APP_CONFIG.incidentUploadedPhotos = urls;
                         if (typeof window.renderIncidentPhotosUI === 'function') {
-                            window.renderIncidentPhotosUI(isFurniture ? 'furniture' : (isDevice ? 'device' : (isLona ? 'lona' : 'pantalla')));
+                            window.renderIncidentPhotosUI(isFurniture ? 'furniture' : (isDevice ? 'device' : (isLona ? 'lona' : 'screen')));
                         }
                     }
                 }
@@ -1964,7 +2007,7 @@ window.jumpToCreateReportForStore = function(customReport = null) {
                 
                 if (urls.length > 0) {
                     APP_CONFIG.incidentUploadedPhotos = [...urls];
-                    const thumbContainer = document.getElementById(`incident-thumbnails-${isFurniture ? 'furniture' : (isDevice ? 'device' : (isLona ? 'lona' : 'pantalla'))}`);
+                    const thumbContainer = document.getElementById(`incident-thumbnails-${isFurniture ? 'furniture' : (isDevice ? 'device' : (isLona ? 'lona' : 'screen'))}`);
                     
                     if (thumbContainer) {
                         thumbContainer.innerHTML = ''; // Limpiar previos visualmente
@@ -2784,9 +2827,15 @@ window.renderStoreSelectionList = function() {
             document.getElementById('store-selection-modal').classList.add('hidden');
             
             if (mode === 'incident') {
-                document.getElementById('selected-store-text').textContent = t.nombre;
-                document.getElementById('selected-store-text').style.fontWeight = 'bold';
-                document.getElementById('custom-store-trigger').style.border = '1px solid #ccc';
+                const selStoreText = document.getElementById('selected-store-text');
+                if (selStoreText) {
+                    selStoreText.textContent = t.nombre;
+                    selStoreText.style.fontWeight = 'bold';
+                }
+                const customTrigger = document.getElementById('custom-store-trigger');
+                if (customTrigger) {
+                    customTrigger.style.border = '1px solid #ccc';
+                }
                 const hiddenInput = document.getElementById('incident-centro');
                 if (hiddenInput) {
                     hiddenInput.value = t.nombre;
@@ -3213,7 +3262,7 @@ window.chooseMainCategory = function(category, btn) {
     
     // NUEVO: Repintar fotos preservadas si existían
     if (typeof window.renderIncidentPhotosUI === 'function' && APP_CONFIG.incidentUploadedPhotos.length > 0) {
-        window.renderIncidentPhotosUI(category === 'screen' ? 'pantalla' : category);
+        window.renderIncidentPhotosUI(category === 'screen' ? 'screen' : category);
     }
 };
 
@@ -3345,19 +3394,16 @@ async function selectLevel(type, level, value) {
         
         const filtered = APP_CONFIG.deviceCatalog.filter(d => {
             const itemTip = String(d.col0 || d.Tipologia || d['Tipologia'] || '').trim().toUpperCase();
-            const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
-            const normTipologyChosen = normalizeString(tipologyChosen);
             
-            // FIX: la Tipología se saca principalmente de la columna B (Subcategoría), no de la A.
-            let tipologyMatch = (searchPayload === normTipologyChosen) || searchPayload.includes(normTipologyChosen);
-            
-            // Respaldo: si no hay coincidencia por columna B, probamos por columna A (Tipología)
-            // por si en alguna fila la clasificación está ahí en vez de en la B.
-            if (!tipologyMatch) {
-                tipologyMatch = (itemTip === tipologyChosen) || itemTip.includes(tipologyChosen);
+            // Flexibilidad: si en excel pone "LDU / DUMMY", matchTipology debe aceptar tanto LDU como DUMMY
+            let tipologyMatch = (itemTip === tipologyChosen);
+            if (!tipologyMatch && itemTip.includes(tipologyChosen)) {
+                tipologyMatch = true;
             }
             
             if (!tipologyMatch) return false;
+            
+            const searchPayload = normalizeString(d.col1 || d.Subcategoria || d.Subcategoria || '');
             
             if (tipologyChosen === 'POSM') {
                 const searchKey = normalizeString(subcategoryChosen);
@@ -3392,20 +3438,6 @@ async function selectLevel(type, level, value) {
             }
         });
         
-        // FIX: diagnóstico en consola para saber al instante por qué está vacío el desplegable:
-        // ¿catálogo sin cargar, o simplemente no hay filas para esa Tipología en el Excel?
-        if (filtered.length === 0) {
-            if (APP_CONFIG.deviceCatalog.length === 0) {
-                console.warn('⚠️ El catálogo de dispositivos está vacío (0 cargados). No es un problema de filtro, es que no llegó a cargar.');
-            } else {
-                const tipologiasDisponibles = [...new Set(APP_CONFIG.deviceCatalog.map(d => String(d.col0 || '').trim().toUpperCase()).filter(Boolean))];
-                const subcategoriasDisponibles = [...new Set(APP_CONFIG.deviceCatalog.map(d => String(d.col1 || '').trim().toUpperCase()).filter(Boolean))];
-                console.warn(`⚠️ 0 dispositivos coinciden con Tipología="${tipologyChosen}" (Subcategoría="${subcategoryChosen}"). Catálogo cargado: ${APP_CONFIG.deviceCatalog.length} filas. Valores que SÍ existen en columna A (Tipología):`, tipologiasDisponibles, '| Valores que SÍ existen en columna B (Subcategoría):', subcategoriasDisponibles);
-            }
-        } else {
-            console.log(`✅ ${filtered.length} modelos encontrados para Tipología="${tipologyChosen}".`);
-        }
-        
         if (level === 3) {
             const box = document.getElementById('device-models-box');
             box.classList.remove('hidden');
@@ -3435,9 +3467,6 @@ async function selectLevel(type, level, value) {
             final.classList.remove('hidden');
             final.scrollIntoView({ behavior: 'smooth' });
         }
-    } else {
-        // Generico: mostrar siguiente nivel o final
-        showFinalForm(type);
     }
     
     // Show next level or final form
@@ -3447,7 +3476,7 @@ async function selectLevel(type, level, value) {
     if (nextBox) {
         nextBox.classList.remove('hidden');
         nextBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
+    } else if (type !== 'device' && type !== 'lona') {
         showFinalForm(type);
     }
 }
@@ -3523,6 +3552,7 @@ window.handleLonaDropdownChange = function(sel) {
 };
 
 window.renderIncidentPhotosUI = function(type) {
+    if (type === 'pantalla') type = 'screen';
     const container = document.getElementById(`incident-thumbnails-${type}`);
     if (!container) return;
     
@@ -3756,7 +3786,8 @@ async function submitFinalReport(event, type) {
             enviar: enviarVal,
             photos: APP_CONFIG.incidentUploadedPhotos,
             estado: 'Abierta',
-            updateId: window.editingIncidentId || APP_CONFIG.currentReport.updateId || null
+            updateId: window.editingIncidentId || APP_CONFIG.currentReport.updateId || null,
+            originalFecha: window.editingIncidentDate || APP_CONFIG.currentReport?.fecha || ''
         };
         
         if (isFurniture) {
@@ -4047,6 +4078,7 @@ function resetProcedure(preserveStoreContext = false) {
     // NUEVO: Limpiar automáticamente el modo edición si estaba activo
     if (!preserveStoreContext) {
         window.editingIncidentId = null;
+        window.editingIncidentDate = null;
         const banner = document.getElementById('editing-mode-banner');
         if (banner) {
             banner.style.display = 'none';
@@ -4083,6 +4115,8 @@ function resetProcedure(preserveStoreContext = false) {
     
     document.getElementById('furniture-procedure')?.classList.add('hidden');
     document.getElementById('device-procedure')?.classList.add('hidden');
+    document.getElementById('screen-procedure')?.classList.add('hidden');
+    document.getElementById('lona-procedure')?.classList.add('hidden');
     document.getElementById('device-models-box')?.classList.add('hidden');
     const customInp = document.getElementById('device-selector-custom');
     if (customInp) {
@@ -4106,7 +4140,7 @@ function resetProcedure(preserveStoreContext = false) {
         document.querySelectorAll('form').forEach(f => f.reset());
     } else {
         // Resetear formularios de procedimientos internos, no los selectores raíz
-        document.querySelectorAll('#furniture-procedure form, #device-procedure form').forEach(f => f.reset());
+        document.querySelectorAll('#furniture-procedure form, #device-procedure form, #screen-procedure form, #lona-procedure form').forEach(f => f.reset());
     }
 }
 
@@ -4119,8 +4153,10 @@ async function callApi(data) {
     }
 
     // El backend valida este token antes de atender datos o cambios protegidos.
-    if (!['login', 'getUserList'].includes(data.action) && APP_CONFIG.sessionToken) {
-        data = { ...data, sessionToken: APP_CONFIG.sessionToken };
+    const token = APP_CONFIG.sessionToken || localStorage.getItem('xiaomi_session_token');
+    if (!['login', 'getUserList'].includes(data.action) && token) {
+        APP_CONFIG.sessionToken = token;
+        data = { ...data, sessionToken: token };
     }
 
     const isRead = !['submitReport', 'uploadFile', 'submitLaunchChecklist', 'login', 'resolveIncident', 'deleteReport', 'sendMessage', 'markMessageRead', 'markAllMessagesRead', 'deleteLaunchValidation', 'updateLaunchValidation', 'getMessages'].includes(data.action);
@@ -4997,31 +5033,43 @@ window.openLaunchValidationEditor = function(meta, mode) {
     
     // Reset buffers
     window.editValPhotosBuffer = [];
-    document.getElementById('edit-val-thumbnails').innerHTML = '';
-    document.getElementById('edit-val-photos-input').value = '';
+    const valThumbs = document.getElementById('edit-val-thumbnails');
+    if (valThumbs) valThumbs.innerHTML = '';
+    const valCam = document.getElementById('edit-val-cam');
+    if (valCam) valCam.value = '';
+    const valGal = document.getElementById('edit-val-gal');
+    if (valGal) valGal.value = '';
     
     // Setup Title y data
-    document.getElementById('edit-val-title').textContent = mode === 'resolve' ? 'Resolver Incidencia Lanzamiento' : (mode === 'edit' ? 'Editar Validación' : 'Detalles del Lanzamiento');
-    document.getElementById('edit-val-id').value = meta.id || '';
-    document.getElementById('edit-val-store').value = meta.tienda || '';
-    document.getElementById('edit-val-mode').value = mode;
+    const titleEl = document.getElementById('edit-val-title');
+    if (titleEl) titleEl.textContent = mode === 'resolve' ? 'Resolver Incidencia Lanzamiento' : (mode === 'edit' ? 'Editar Validación' : 'Detalles del Lanzamiento');
+    const idEl = document.getElementById('edit-val-id');
+    if (idEl) idEl.value = meta.id || '';
+    const storeEl = document.getElementById('edit-val-store');
+    if (storeEl) storeEl.value = meta.tienda || '';
+    const modeEl = document.getElementById('edit-val-mode');
+    if (modeEl) modeEl.value = mode;
     
-    document.getElementById('edit-val-tienda-txt').textContent = meta.tienda || '-';
-    document.getElementById('edit-val-lanz-txt').textContent = meta.lanzamiento || '-';
+    const tiendaTxt = document.getElementById('edit-val-tienda-txt');
+    if (tiendaTxt) tiendaTxt.textContent = meta.tienda || '-';
+    const lanzTxt = document.getElementById('edit-val-lanz-txt');
+    if (lanzTxt) lanzTxt.textContent = meta.lanzamiento || '-';
     
     const commentBox = document.getElementById('edit-val-comentario');
-    commentBox.value = meta.comentario || '';
-    commentBox.readOnly = (mode === 'view');
+    if (commentBox) {
+        commentBox.value = meta.comentario || '';
+        commentBox.readOnly = (mode === 'view');
+    }
     
     // Current Photos Container
     const currPhotos = document.getElementById('edit-val-current-photos');
-    currPhotos.innerHTML = '';
+    if (currPhotos) currPhotos.innerHTML = '';
     const photoLabel = document.getElementById('edit-val-photo-label');
     const inputBlock = document.getElementById('edit-val-photos-input');
     const submitBtn = document.getElementById('edit-val-submit-btn');
     
     // Lógica fotos actuales
-    if (meta.fotos) {
+    if (meta.fotos && currPhotos) {
         const urls = meta.fotos.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
         if (urls.length > 0) {
             currPhotos.innerHTML = `<p style="font-size:11px; margin:0 0 5px; font-weight:600; color:#666;">Fotografías Actuales:</p>`;
@@ -5037,15 +5085,17 @@ window.openLaunchValidationEditor = function(meta, mode) {
     
     // Visibilidad por modo
     if (mode === 'view') {
-        inputBlock.style.display = 'none';
-        photoLabel.style.display = 'none';
-        submitBtn.style.display = 'none';
+        if (inputBlock) inputBlock.style.display = 'none';
+        if (photoLabel) photoLabel.style.display = 'none';
+        if (submitBtn) submitBtn.style.display = 'none';
     } else {
-        inputBlock.style.display = 'block';
-        photoLabel.style.display = 'block';
-        submitBtn.style.display = 'block';
-        submitBtn.textContent = mode === 'resolve' ? 'Resolver y Guardar OK' : 'Actualizar Cambios';
-        submitBtn.style.background = mode === 'resolve' ? '#2ecc71' : '#ff6700';
+        if (inputBlock) inputBlock.style.display = 'flex';
+        if (photoLabel) photoLabel.style.display = 'block';
+        if (submitBtn) {
+            submitBtn.style.display = 'block';
+            submitBtn.textContent = mode === 'resolve' ? 'Resolver y Guardar OK' : 'Actualizar Cambios';
+            submitBtn.style.background = mode === 'resolve' ? '#2ecc71' : '#ff6700';
+        }
     }
     
     modal.style.display = 'flex';
@@ -5213,14 +5263,6 @@ function fileToBase64(file) {
         reader.onerror = error => reject(error);
     });
 }
-function toBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
 
 
 
@@ -5239,9 +5281,6 @@ function mockApi(data) {
     });
 }
 
-
-window.filterToAllReports = function() { renderDashboardTable(APP_CONFIG.dashboardReports || []); const table = document.getElementById('recent-reports-table'); if (table) table.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
-window.filterToIncidents = function() { const list = (APP_CONFIG.dashboardReports || []).filter(r => { const val = String(r.tipo || '').toUpperCase(); return val.includes('DISPOSITIVO') || val.includes('MOBILIARIO') || val.includes('INCIDENCIA') || val.includes('INCIDENTE') || val.includes('LONA') || val.includes('PANTALLA'); }); renderDashboardTable(list); const table = document.getElementById('recent-reports-table'); if (table) table.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
 
 window.openDashboardModal = function(status, category = null) { 
     const modal = document.getElementById('historial-modal'); 
@@ -6430,7 +6469,6 @@ if ('serviceWorker' in navigator) {
         // Cuando la nueva versión toma el control, recargamos la página una sola vez
         let swRefreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('SW: controllerchange recibido, recargando...');
             if (swRefreshing) return;
             swRefreshing = true;
             window.location.reload();
@@ -6452,19 +6490,10 @@ function showUpdateBanner(reg) {
     document.getElementById('sw-update-btn').onclick = () => {
         const btn = document.getElementById('sw-update-btn');
         if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
-
-        // FIX: en algunos WebView usados para empaquetar la APK, 'controllerchange' no
-        // siempre se dispara de forma fiable, y el botón se quedaba en "Actualizando..."
-        // sin hacer nada. Como red de seguridad, forzamos la recarga a los 3s de todos modos.
-        const fallbackTimer = setTimeout(() => {
-            console.warn('SW: controllerchange no llegó a tiempo, forzando recarga manual.');
-            window.location.reload();
-        }, 3000);
-
         if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         } else {
-            clearTimeout(fallbackTimer);
+            // Por si acaso ya no hay 'waiting' (poco probable en este punto), forzamos recarga igualmente
             window.location.reload();
         }
     };

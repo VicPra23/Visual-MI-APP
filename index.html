@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xiaomi VISUAL APP</title>
-    <link rel="stylesheet" href="style_v128.css?v=12">
+    <link rel="stylesheet" href="style_v128.css?v=143">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -1023,7 +1023,7 @@
                         <label style="font-weight:600; display:block; margin-bottom:5px;" id="edit-val-photo-label">Nuevas Fotografías (Sustituirán las anteriores):</label>
                         <div id="edit-val-current-photos" class="modal-photo-grid" style="margin-bottom:10px; min-height:0;"></div>
                         
-                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div id="edit-val-photos-input" style="display: flex; gap: 10px; margin-bottom: 10px;">
                             <button type="button" class="btn-secondary" onclick="document.getElementById('edit-val-cam').click()" style="flex: 1; padding: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-camera"></i> Cámara</button>
                             <button type="button" class="btn-secondary" onclick="document.getElementById('edit-val-gal').click()" style="flex: 1; padding: 10px; font-weight: bold; background: #f0f0f0; border: 1px solid #ccc; color: #333;"><i class="fas fa-images"></i> Galería</button>
                         </div>
@@ -1074,6 +1074,7 @@
                     <option value="mobiliario">Mobiliario</option>
                     <option value="pantalla">Pantalla Digital</option>
                     <option value="lona">Lona</option>
+                    <option value="lanzamiento">Lanzamiento</option>
                 </select>
                 <select id="modal-filter-usuario" class="capsule-select" style="flex: 1; min-width: 0; height: 36px; padding: 0 10px; font-size: 13px; outline: none; border: 1px solid var(--mi-border); border-radius: 6px;" onchange="window.applyModalFilters()">
                     <option value="all">Todos los Usuarios</option>
@@ -1357,6 +1358,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
 
     <!-- Archivos principales de la aplicación -->
-    <script src="main_v130.js?v=145" defer></script>
+    <script src="main_v130.js?v=144" defer></script>
 </body>
 </html>
