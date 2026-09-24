@@ -6485,17 +6485,52 @@ function showUpdateBanner(reg) {
     banner.innerHTML = `
         <span><i class="fas fa-rotate-right"></i>&nbsp; Hay una nueva versión de la app disponible.</span>
         <button id="sw-update-btn" style="background:#fff;color:#F35F35;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;">Actualizar ahora</button>
+        <button id="sw-update-close" style="background:transparent;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 6px;line-height:1;" title="Cerrar aviso">&times;</button>
     `;
     document.body.prepend(banner);
-    document.getElementById('sw-update-btn').onclick = () => {
+    const closeBtn = document.getElementById('sw-update-close');
+    if (closeBtn) {
+        closeBtn.onclick = () => banner.remove();
+    }
+    document.getElementById('sw-update-btn').onclick = async () => {
         const btn = document.getElementById('sw-update-btn');
         if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
-        if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        } else {
-            // Por si acaso ya no hay 'waiting' (poco probable en este punto), forzamos recarga igualmente
-            window.location.reload();
+
+        let reloaded = false;
+        const doReload = () => {
+            if (!reloaded) {
+                reloaded = true;
+                window.location.reload();
+            }
+        };
+
+        // Escuchar si el nuevo SW toma el control
+        navigator.serviceWorker.addEventListener('controllerchange', doReload, { once: true });
+
+        // Enviar SKIP_WAITING tanto a waiting como a installing
+        try {
+            if (reg.waiting) {
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            if (reg.installing) {
+                reg.installing.postMessage({ type: 'SKIP_WAITING' });
+            }
+        } catch (e) {
+            console.warn('Error avisando a SW:', e);
         }
+
+        // Limpiar cachés del navegador desde el cliente
+        try {
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+        } catch (e) {
+            console.warn('Error limpiando cachés en cliente:', e);
+        }
+
+        // Seguro contra bloqueos: forzar recarga tras 600ms si el evento no ha saltado
+        setTimeout(doReload, 600);
     };
 }
 
