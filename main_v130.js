@@ -170,6 +170,15 @@ function normalizeString(str) {
     return String(str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
 }
 
+function cleanSubcategoryString(str) {
+    return String(str || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/\bDE\b/g, "")
+        .replace(/[^A-Z0-9]/g, "");
+}
+
 // Función para actualizar código de dispositivo
 window.updateDeviceCode = function(selectId, inputId) {
     const select = document.getElementById(selectId);
@@ -1879,7 +1888,11 @@ window.jumpToCreateReportForStore = function(customReport = null) {
 
                 if (r.subcategoria) {
                     const subBtns = Array.from(container.querySelectorAll('.level-box[data-level="3"] button.bubble-btn'));
-                    const targetSub = subBtns.find(b => b.textContent.trim().toUpperCase() === String(r.subcategoria).trim().toUpperCase());
+                    const targetSub = subBtns.find(b => {
+                        const bTxt = b.textContent.trim().toUpperCase();
+                        const rSub = String(r.subcategoria).trim().toUpperCase();
+                        return bTxt === rSub || cleanSubcategoryString(bTxt) === cleanSubcategoryString(rSub);
+                    });
                     if (targetSub) targetSub.click();
                 }
 
@@ -3443,10 +3456,15 @@ async function selectLevel(type, level, value) {
             const searchPayload = normalizeString(d.col1 || d['subcatergoría'] || d['Subcategoría'] || d.Subcategoria || d.subcategoria || '');
             
             if (tipologyChosen === 'POSM') {
-                const searchKey = normalizeString(subcategoryChosen);
-                if (!searchKey) return true;
-                if (searchKey === 'LUMINOSO') return searchPayload === 'LUMINOSO';
-                return searchPayload.includes(searchKey);
+                const cBtn = cleanSubcategoryString(subcategoryChosen);
+                const rawSub = d.col1 || d['subcatergoría'] || d['Subcategoría'] || d.Subcategoria || d.subcategoria || '';
+                const cExcel = cleanSubcategoryString(rawSub);
+                if (!cBtn) return true;
+                if (!cExcel) return false;
+                if (cBtn === 'LUMINOSO') {
+                    return cExcel.includes('LUMINOSO');
+                }
+                return cExcel.includes(cBtn) || cBtn.includes(cExcel);
             } else {
                 // LDU y DUMMY
                 if (motivoChosen === 'ALARMADO') {
