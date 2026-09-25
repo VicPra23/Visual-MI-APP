@@ -6543,6 +6543,7 @@ if ('serviceWorker' in navigator) {
 
 // Aviso fijo arriba de la pantalla: "Hay una nueva versión disponible"
 function showUpdateBanner(reg) {
+    if (sessionStorage.getItem('dismissed_sw_update') === 'true') return;
     if (document.getElementById('sw-update-banner')) return; // ya se está mostrando
     const banner = document.createElement('div');
     banner.id = 'sw-update-banner';
@@ -6555,33 +6556,31 @@ function showUpdateBanner(reg) {
     document.body.prepend(banner);
     const closeBtn = document.getElementById('sw-update-close');
     if (closeBtn) {
-        closeBtn.onclick = () => banner.remove();
+        closeBtn.onclick = () => {
+            banner.remove();
+            sessionStorage.setItem('dismissed_sw_update', 'true');
+        };
     }
     document.getElementById('sw-update-btn').onclick = async () => {
         const btn = document.getElementById('sw-update-btn');
         if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
 
-        let reloaded = false;
-        const doReload = () => {
-            if (!reloaded) {
-                reloaded = true;
-                window.location.reload();
-            }
-        };
+        // Evitar que el banner vuelva a salir en esta sesión tras recargar
+        sessionStorage.setItem('dismissed_sw_update', 'true');
 
-        // Escuchar si el nuevo SW toma el control
-        navigator.serviceWorker.addEventListener('controllerchange', doReload, { once: true });
+        // Quitar banner visualmente de inmediato
+        banner.remove();
 
-        // Enviar SKIP_WAITING tanto a waiting como a installing
+        // Desregistrar workers previos para limpiar cualquier worker atascado en waiting
         try {
-            if (reg.waiting) {
-                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-            if (reg.installing) {
-                reg.installing.postMessage({ type: 'SKIP_WAITING' });
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (let r of regs) {
+                    await r.unregister();
+                }
             }
         } catch (e) {
-            console.warn('Error avisando a SW:', e);
+            console.warn('Error desregistrando SW:', e);
         }
 
         // Limpiar cachés del navegador desde el cliente
@@ -6594,8 +6593,10 @@ function showUpdateBanner(reg) {
             console.warn('Error limpiando cachés en cliente:', e);
         }
 
-        // Seguro contra bloqueos: forzar recarga tras 600ms si el evento no ha saltado
-        setTimeout(doReload, 600);
+        // Recargar con la versión más reciente
+        setTimeout(() => {
+            window.location.reload();
+        }, 150);
     };
 }
 
