@@ -1,0 +1,166 @@
+================================================================================
+           REGISTRO COMPLETO DE CAMBIOS Y ACTUALIZACIONES - OCTUBRE 2026
+                            XIAOMI VISUAL APP (PWA)
+================================================================================
+
+Este documento recopila de forma cronológica y temática todas las mejoras,
+correcciones de errores, desarrollos de nuevas funcionalidades y adaptaciones 
+de planogramas 3D realizadas durante el mes de Octubre de 2026.
+
+================================================================================
+1. CALENDARIO, SINCRONIZACIÓN CLOUD (GOOGLE SHEETS) Y GESTIÓN DE VISITAS
+================================================================================
+
+* Sistema Drag & Drop Táctil y Escritorio (02/10/2026):
+  - Implementación de soporte táctil completo para arrastrar y soltar actividades 
+    del calendario en dispositivos móviles (smartphones/tablets) y navegadores desktop.
+  - Al arrastrar y soltar en móvil, se añadió un menú contextual que permite elegir
+    entre 'Mover' o 'Copiar' la actividad.
+  - Soporte para arrastrar tanto pastillas individuales de visita/actividad como
+    días completos con todas sus visitas asociadas.
+
+* Sincronización Bidireccional en Tiempo Real con Google Sheets (02/10/2026 - 15/10/2026):
+  - Conexión y despliegue sucesivo de endpoints optimizados en Google Apps Script
+    para lectura y escritura bidireccional inmediata.
+  - Resolución del problema de congelamiento ('pantalla en gris'): la sincronización
+    ahora se ejecuta de forma asíncrona en segundo plano sin interrumpir las acciones
+    del usuario ni bloquear la interfaz si se está arrastrando o editando.
+  - Optimización en el copiado y movimiento masivo de registros para reducir la latencia.
+  - Indicadores visuales rápidos '(dentro)' y '(fuera)' en las tarjetas superiores de 
+    visitas para agilizar el recuento logístico de tiendas.
+  - Incorporación de botón rápido al pulsar sobre una actividad para 'Copiar Actividad'
+    directamente sin necesidad de arrastrar.
+
+* Integración con el Calendario Nativo del Móvil (13/10/2026 - 15/10/2026):
+  - Generación de flujos de exportación y suscripción a calendarios externos (.ics).
+  - Sistema de solicitud de permisos y recordatorios automáticos / notificaciones
+    push locales no intrusivas basadas en la agenda de visitas.
+
+
+================================================================================
+2. CATÁLOGO DE PRODUCTOS, REPORTES E INVENTARIO IMEI
+================================================================================
+
+* Actualización y Depuración del Catálogo Oficial Xiaomi (05/10/2026 - 08/10/2026):
+  - Inclusión de los nuevos lanzamientos en los selectores de reporte:
+    • Xiaomi Clip
+    • Xiaomi Watch S5 46mm y serie S5
+    • Xiaomi Band 11 Series (reemplazando la antigua nomenclatura Band 10)
+  - Eliminación de términos incorrectos y duplicados (p. ej. descarte de 'Watch S5 41 mm'
+    y unificación de códigos).
+  - Corrección de tipografía en la base de datos de tablets: corrección de
+    'Redmi Pad 2 9,7"' a 'Redmi Pad 2 9.7"'.
+
+* Lógica Inteligente de Reportes e Incidencias en Visor 3D (26/10/2026):
+  - Al inspeccionar cualquier terminal o accesorio en el visor 3D, el sistema
+    valida automáticamente si el modelo seleccionado cuenta con información e IMEI
+    en la base de datos oficial (Excel / devices.json / stores_imei_real.js).
+  - Si el dispositivo no tiene datos registrados en la tienda seleccionada, se oculta
+    el bloque de reporte de IMEI y se muestra únicamente la opción de 'Reportar Incidencia',
+    evitando inventar códigos o registrar datos inexistentes.
+
+* Gestión y Carga de Evidencias Fotográficas (07/10/2026 - 19/10/2026):
+  - Solución a errores reportados por usuarios al subir fotos pesadas desde el móvil.
+  - Indicador de estado y previsualización de las fotos cargadas antes de iniciar la subida.
+  - Corrección del fallo que generaba carátulas/miniaturas duplicadas en los reportes
+    al previsualizar imágenes adjuntas.
+
+
+================================================================================
+3. DASHBOARD, VACACIONES Y REPORTES PDF
+================================================================================
+
+* Dashboard para Usuarios Standard (14/10/2026 - 19/10/2026):
+  - Activación de filtros funcionales simplificados de período: Semanal, Mensual y Anual.
+  - Eliminación de multiselecciones confusas en la vista de usuario estándar.
+  - Comportamiento de arranque fijado para cargar automáticamente la información
+    del período en curso (semana/mes actual).
+
+* Módulo de Gestión de Vacaciones (22/10/2026):
+  - Corrección en el algoritmo de cálculo de saldo de días de vacaciones:
+    se subsanó el error por el cual, al solicitar todos los días disponibles, el contador
+    mostraba erróneamente un valor de '-1' en lugar de 0 días restantes.
+
+* Módulo Deportivo / Temporada, Livetracker y Plantilla (05/10/2026 - 22/10/2026):
+  - Pestaña Temporada: botón selector interactivo entre resultados de Local y Visitante.
+  - Exportación PDF de Temporada adaptada para procesar correctamente todas las sedes
+    cuando se marca la opción 'Todas'.
+  - Nueva gráfica visual de evolución de rendimiento y resultados por jornadas.
+  - Eliminación del término 'femenino' en la plantilla del PDF para universalizar el reporte.
+  - Livetracker: reorganización ergonómica de la selección de tipos de gol en una cuadrícula
+    de 3 columnas x 5 filas y reubicación del panel de control de tiempo del banquillo a la derecha.
+  - Apartado Plantilla: desglose de estadísticas individuales por cada jugadora/integrante.
+
+
+================================================================================
+4. SHOWROOM 3D VOLUMÉTRICO: CABECERA ECI (EL CORTE INGLÉS)
+================================================================================
+
+* Reconstrucción 3D Integral de la Cabecera Oficial ECI (26/10/2026):
+  - Transformación completa de la cabecera comercial (anteriormente una imagen plana 2D)
+    en un mueble físico tridimensional interactivo con rotación horizontal en 360 grados.
+  - Segmentación rigurosa en 3 capas físicas exactas:
+    1. FONDO (Panel Vertical Trasero):
+       • Imagen oficial limpia y aislada en alta resolución (cabecera_eci_fondo.png, 976x320).
+       • Conserva el lema 'xiaomi 18 Pro Series', la estética del móvil rojo fotográfico
+         y los logotipos oficiales de Xiaomi y Leica.
+       • Eliminación de figuras impresas solapadas con los dispositivos 3D reales.
+       • Trasera blanca con marca de agua oficial al girar 180°.
+    2. FIGURAS 3D CON VOLUMEN (Sobre el mostrador):
+       • Posición 1: Trío de exhibición Xiaomi 18 Pro Max (Blanco, Negro y Azul) en
+         formación escalonada sobre peana acrílica con selectores de color.
+       • Posición 2: Terminal Xiaomi 18 Pro en soporte dock vertical con pinzas de fijación,
+         columna trasera de soporte y cable de seguridad retráctil en espiral.
+       • Posición 3: Xiaomi Watch S5 46mm montado en pedestal cilíndrico de metacrilato blanco.
+       • Posición 4: Auriculares Xiaomi Clip sobre bandeja expositora acrílica blanca.
+    3. TEXTO Y ESPECIFICACIONES DEBAJO DE LOS PRODUCTOS:
+       • Sustitución de pastillas negras artificiales por la gráfica oficial de especificadores
+         técnicos de Xiaomi (cabecera_eci_footer.png).
+       • Especificaciones 100% auténticas: pantallas traseras, cámaras Leica 200MP,
+         procesador Snapdragon 8 Elite Extreme, batería de 21 días del Watch S5 y drivers de 11mm del Clip.
+
+* Perfeccionamiento de Anclaje 3D y Perspectiva en el Eje X (26/10/2026):
+  - Eliminación de todo 'aire' o hueco entre el panel de fondo y la mesa:
+    ajuste geométrico exacto a 0px de separación entre la parte inferior del móvil rojo
+    y el canto posterior de la encimera blanca.
+  - Retirada del texto de la cara frontal vertical (eje Y): el texto ahora reside en la
+    propia superficie horizontal (eje X), con visión frontal natural.
+  - Ampliación de profundidad de la encimera (275px) para dar cabida en la zona superior
+    a los terminales con sus peanas y en la zona inferior a los textos de especificaciones.
+  - Canto delantero limpio de 38px con una elegante línea de acento color naranja/metálico.
+
+
+================================================================================
+5. SHOWROOM 3D VOLUMÉTRICO: MÓDULO COLUMNA RETAIL
+================================================================================
+
+* Actualización de Dispositivos y Exposición en Columna (27/10/2026):
+  - Modificación de los productos exhibidos en la cara frontal del tótem de columna
+    (aplicable a las 38 tiendas con Columna y al showroom estándar):
+    • Bloque 1 (Bandeja izquierda):
+      - Slot 1: RN 17 Pro Max 5G (color Orange, terminal LDU).
+      - Slot 2: REDMI Watch 6 Active (color Black).
+      - Slot 3: REDMI Watch 5 Lite (sustituyendo a los anteriores auriculares).
+    • Bloque 2 (Bandeja derecha):
+      - Slot 1: REDMI Pad 2 en posición horizontal apaisada sobre su peana.
+  - Añadidos mapeos de imágenes de producto de alta definición y soporte para giro 360°.
+
+
+================================================================================
+6. ARQUITECTURA PWA, MOTOR DE CACHÉ Y CONTROL DE VERSIONES
+================================================================================
+
+* Mecanismo de Auto-Purga de Caché para Evitar Desactualizaciones (Todo Octubre):
+  - Creación y evolución del script de invalidación automática en index.html y sw.js.
+  - Historial progresivo de versiones PWA liberadas durante el mes:
+    • v155 a v163: Estabilización de base de datos IMEI y persistencia en localStorage.
+    • v214 a v216: Despliegue de los módulos 3D de Wall, Columnas multi-cara y Cabecera ECI.
+    • v217: Integración de las 3 partes exactas de la Cabecera ECI.
+    • v218: Eliminación de aire entre fondo y mesa; superficie extendida en eje X.
+    • v219: Nueva distribución de la Columna (RN 17 Pro Max Orange + Watch 6 + Watch 5 Lite + Pad 2).
+  - Al detectarse una nueva versión, el Service Worker purga automáticamente los cachés
+    anteriores, eliminando la necesidad de que los usuarios borren datos del navegador manualmente.
+
+================================================================================
+Fin del informe de cambios - Octubre 2026
+================================================================================

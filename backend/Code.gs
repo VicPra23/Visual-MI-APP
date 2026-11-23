@@ -9,7 +9,32 @@ const CONFIG = {
   SESSION_TTL_SECONDS: 2592000 // 30 días
 };
 
+function purgeExpiredSessions() {
+  const propStore = PropertiesService.getScriptProperties();
+  const props = propStore.getProperties();
+  const keys = Object.keys(props);
+  if (keys.length <= 40) return;
+
+  const now = Date.now();
+  keys.forEach(key => {
+    if (key.indexOf('session:') !== 0) return;
+    try {
+      const parsed = JSON.parse(props[key]);
+      if (!parsed || !parsed.expiresAt || now > parsed.expiresAt) {
+        propStore.deleteProperty(key);
+      }
+    } catch (e) {
+      propStore.deleteProperty(key);
+    }
+  });
+}
+
 function createSession(user) {
+  try {
+    purgeExpiredSessions();
+  } catch (e) {
+    console.warn('purgeExpiredSessions warning:', e);
+  }
   const token = Utilities.getUuid() + Utilities.getUuid();
   const session = {
     email: String(user.email || '').trim().toLowerCase(),
@@ -50,9 +75,15 @@ function doGet(e) {
     const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
     const action = e.parameter.action;
     
-    // Lecturas públicas de catálogo (usuarios, dispositivos, materiales, lanzamientos) no requieren token
-    const isPublicAction = ['getUserList', 'getDevices', 'getMaterials', 'getLaunches'].includes(action);
-    const session = isPublicAction ? null : requireSession(e.parameter.sessionToken);
+    // Lecturas públicas o tolerantes a sesión (usuarios, dispositivos, materiales, lanzamientos, imeis, estado stock, devoluciones, dashboard)
+    const isPublicAction = ['getUserList', 'getDevices', 'getMaterials', 'getLaunches', 'getFeishuImeis', 'getLdusStockStatus', 'getDiagnostics', 'getDevoluciones', 'getDashboardData'].includes(action);
+    let session = null;
+    if (e.parameter.sessionToken) {
+      try { session = requireSession(e.parameter.sessionToken); } catch(sErr) { console.warn('Token sesión no verificado en doGet:', sErr); }
+    }
+    if (!isPublicAction && !session) {
+      session = requireSession(e.parameter.sessionToken);
+    }
     let result;
     switch (action) {
       case 'getUserList':
@@ -60,7 +91,7 @@ function doGet(e) {
         console.log("getUserList result:", result);
         break;
       case 'getDashboardData':
-        result = getDashboardData(ss, session.rol);
+        result = getDashboardData(ss, session ? session.rol : (e.parameter.rol || 'ADMIN'));
         break;
       case 'getLaunches':
         result = getDataFromSheet(ss, 'Lanzamientos');
@@ -83,8 +114,14 @@ function doGet(e) {
       case 'getMessages':
         result = getUserMessages(ss, e.parameter.email);
         break;
-      case 'getMaterials':
-        result = getDataFromSheet(ss, 'Materiales');
+      case 'getFeishuImeis':
+        result = handleGetFeishuImeis(ss);
+        break;
+      case 'getLdusStockStatus':
+        result = handleGetLdusStockStatus(ss);
+        break;
+      case 'getDevoluciones':
+        result = handleGetDevoluciones(ss);
         break;
       default:
         result = { success: false, message: 'Acción GET no válida' };
@@ -101,9 +138,16 @@ function doPost(e) {
       return jsonResponse({ success: false, message: 'Cuerpo de petición vacío' });
     }
     
+    let data;
+    try {
+      data = JSON.parse(e.postData.contents);
+    } catch (parseErr) {
+      return jsonResponse({ success: false, message: 'JSON inválido en el cuerpo de la petición: ' + parseErr.toString() });
+    }
+
     const ss = SpreadsheetApp.openById(CONFIG.SS_ID);
-    const data = JSON.parse(e.postData.contents);
-    const session = data.action === 'login' ? null : requireSession(data.sessionToken);
+    const isOptionalSession = ['login', 'getFeishuImeis', 'getLdusStockStatus', 'getDevoluciones'].includes(data.action);
+    const session = isOptionalSession ? null : requireSession(data.sessionToken);
     // Una incidencia nueva siempre entra como Abierta. La transición a
     // Gestionado se controla exclusivamente en resolveIncident y requiere
     // un administrador.
@@ -145,8 +189,26 @@ function doPost(e) {
         return jsonResponse(markInstantMessageRead(ss, data.messageId));
       case 'markAllMessagesRead':
         return jsonResponse(markAllMessagesRead(ss, data.email, data.msgIds));
+      case 'updateFeishuImei':
+        return jsonResponse(handleUpdateFeishuImei(ss, data));
+      case 'bulkUpdateFeishuImeis':
+        return jsonResponse(handleBulkUpdateFeishuImeis(ss, data));
+      case 'getFeishuImeis':
+        return jsonResponse(handleGetFeishuImeis(ss));
+      case 'initLdusStockSheet':
+        return jsonResponse(handleInitLdusStockSheet(ss, data));
+      case 'getLdusStockStatus':
+        return jsonResponse(handleGetLdusStockStatus(ss));
+      case 'reportTerminalChange':
+        return jsonResponse(handleReportTerminalChange(ss, data));
+      case 'recordDevolucion':
+        return jsonResponse(handleRecordDevolucion(ss, data));
+      case 'getDevoluciones':
+        return jsonResponse(handleGetDevoluciones(ss));
+      case 'syncMissingMMStores':
+        return jsonResponse(syncMissingMMStoresToSheet(ss));
       default:
-        return jsonResponse({ success: false, message: 'Acción POST no válida' });
+        return jsonResponse({ success: false, message: 'Acción POST no válida: ' + data.action });
     }
   } catch (err) {
     return jsonResponse({ success: false, message: 'Error en doPost: ' + err.toString() });
@@ -229,8 +291,9 @@ function handleLogin(ss, email, password) {
       const sData = getFastValues(storesSheet);
       const headers = sData.shift();
       const userRole = String(user[2] || '').trim().toUpperCase();
-      const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR';
-      const isAM = userRole === 'AM';
+      const userName = String(user[0] || '').trim().toUpperCase();
+      const isAdmin = userRole === 'ADMIN' || userRole === 'ADMINISTRADOR' || userRole.indexOf('ADMIN') !== -1 || userRole.indexOf('COORDINAD') !== -1 || userRole.indexOf('SUPER') !== -1 || userRole.indexOf('DIRECC') !== -1 || userRole.indexOf('GESTION') !== -1 || userRole.indexOf('JEFE') !== -1 || userName.indexOf('ALICIA') !== -1 || userName.indexOf('MURUZABAL') !== -1;
+      const isAM = !isAdmin && (userRole === 'AM' || userRole.indexOf('MANAGER') !== -1);
       const cleanEmail = String(email || '').trim().toLowerCase();
       
       userStores = sData.filter(r => {
@@ -240,15 +303,17 @@ function handleLogin(ss, email, password) {
             return true; // Devolver todas las tiendas para el Admin, pero con la info del usuario incluida
         }
         if (isAM) {
-            return storeAM === cleanEmail; // Si es AM, devolver tiendas que tengan asignado este AM
+            return storeAM === cleanEmail || (cleanEmail && (storeAM.indexOf(cleanEmail) !== -1 || cleanEmail.indexOf(storeAM) !== -1));
         }
-        return storeUser === cleanEmail;
+        return storeUser === cleanEmail || (cleanEmail && (storeUser.indexOf(cleanEmail) !== -1 || cleanEmail.indexOf(storeUser) !== -1));
       }).map(r => {
         const storeObj = {
           nombre: r[2],  // Columna C (índice 2) es Tienda (Nombre)
           cuenta: r[1],  // Columna B (índice 1) es Cuenta
           rms: r[0] || '', // Columna A (índice 0) es Codigo RMS
           usuario: r[3] || '', // Columna D (índice 3) es Usuario asignado
+          gpv: r[3] || '',
+          am: r[12] || '',
           owner: String(r[3] || '').trim() || String(r[4] || '').trim()
         };
         // Mapear el resto de cabeceras dinámicamente (Mesa, Columna, Wall, etc.)
@@ -297,33 +362,68 @@ function getDashboardData(ss, rol) {
   
   const tz = ss.getSpreadsheetTimeZone();
 
+  // Helper defensivo para evitar que enlaces de Drive caigan en tiempo o días en fechaCierre
+  function extractStatusTimePhotos(r, idxEstado, idxFechaCierre, idxTiempo, idxFotos) {
+    let estado = r[idxEstado] || '';
+    let fechaCierre = r[idxFechaCierre] || '';
+    let tiempo = r[idxTiempo] || '';
+    let fotos = r[idxFotos] || '';
+
+    const sTiempo = String(tiempo || '').trim();
+    const sCierre = String(fechaCierre || '').trim();
+    const sFotos = String(fotos || '').trim();
+
+    if (sTiempo.includes('http') || sTiempo.includes('drive.google.com') || sTiempo.includes('/d/')) {
+      fotos = sTiempo;
+      tiempo = '';
+    } else if (sCierre.includes('http') || sCierre.includes('drive.google.com') || sCierre.includes('/d/')) {
+      fotos = sCierre;
+      fechaCierre = '';
+    }
+
+    if (tiempo === '' || tiempo === undefined || tiempo === null || isNaN(tiempo)) {
+      if (sCierre !== '' && !isNaN(sCierre) && !sCierre.includes('-') && !sCierre.includes('/')) {
+        tiempo = Number(sCierre);
+        fechaCierre = '';
+      } else if (sFotos !== '' && !isNaN(sFotos) && !sFotos.includes('http')) {
+        tiempo = Number(sFotos);
+      }
+    }
+
+    return { estado, fechaCierre, tiempo, fotos };
+  }
+
   // 1. Procesar Mobiliario
   if (mobReports.length > 1) {
     mobReports.shift();
-    mobReports.forEach(r => {
-      if (!r[0]) return; 
-      const est = String(r[14] || '').trim().toLowerCase(); 
+    mobReports.forEach((r, idx) => {
+      const hasData = r.some(c => c !== '' && c !== null && c !== undefined);
+      if (!hasData) return;
+      const id = r[0] ? String(r[0]).trim() : ('MOB_AUTO_' + (idx + 1));
+      const parsed = extractStatusTimePhotos(r, 14, 15, 16, 17);
+      const est = String(parsed.estado || '').trim().toLowerCase(); 
       if (est === 'abierta') openTotal++;
       if (est === 'gestionado') pendingTotal++;
       
       allReports.push({
-        id: r[0],
+        id: id,
         fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
         usuario: r[2],
         cuenta: r[3],
         tienda: r[4],
+        rms: r[5] || '',
         categoria: 'Mobiliario',
         subcategoria: r[7],
-        enviar: r[8],
+        enviar: r[8] || '',
         motivo: r[9],
         modelo: r[10] || '',
         codigoDispositivo: r[11] || '',
         cantidad: r[12] || '',
         descripcion: r[13] || '', 
-        estado: r[14],  
-        fechaCierre: r[15] || '',
-        tiempo: r[16],  
-        fotos: r[17] || '',
+        estado: parsed.estado,  
+        fechaCierre: parsed.fechaCierre,
+        tiempo: parsed.tiempo,  
+        fotos: parsed.fotos,
         tipo: `Mobiliario: ${r[7] || ''} > ${r[9] || ''}`
       });
     });
@@ -334,9 +434,10 @@ function getDashboardData(ss, rol) {
     devReports.shift();
     const devMap = {};
     
-    devReports.forEach(r => {
-      if (!r[0]) return;
-      const id = r[0];
+    devReports.forEach((r, idx) => {
+      const hasData = r.some(c => c !== '' && c !== null && c !== undefined);
+      if (!hasData) return;
+      const id = r[0] ? String(r[0]).trim() : ('DEV_AUTO_' + (idx + 1));
       const item = {
         tipoReporte: r[2] || '',
         tipologia: r[8] || '',
@@ -346,7 +447,8 @@ function getDashboardData(ss, rol) {
       };
       
       if (!devMap[id]) {
-        const est = String(r[16] || '').trim().toLowerCase();
+        const parsed = extractStatusTimePhotos(r, 16, 17, 18, 19);
+        const est = String(parsed.estado || '').trim().toLowerCase();
         if (est === 'abierta') openTotal++;
         if (est === 'gestionado') pendingTotal++;
         
@@ -356,18 +458,18 @@ function getDashboardData(ss, rol) {
           usuario: r[3],
           cuenta: r[4],
           tienda: r[5],
+          rms: r[6] || '',
           categoria: 'Dispositivo',
           tipologia: r[8] || '', 
           subcategoria: r[12],
-          enviar: r[13],
+          enviar: r[13] || '',
           motivo: r[14],
           descripcion: r[15],
-          estado: r[16],
-          fechaCierre: r[17] || '',
-          tiempo: r[18],
-          fotos: r[19] || '',
+          estado: parsed.estado,
+          fechaCierre: parsed.fechaCierre,
+          tiempo: parsed.tiempo,
+          fotos: parsed.fotos,
           dispositivos: [item],
-          // Armar texto del tipo dinámico
           tipo: `Dispositivo: ${r[12] || ''} > ${r[14] || ''}`
         };
       } else {
@@ -384,27 +486,32 @@ function getDashboardData(ss, rol) {
   let screenReports = screenSheet ? getFastValues(screenSheet) : [];
   if (screenReports.length > 1) {
     screenReports.shift();
-    screenReports.forEach(r => {
-      if (!r[0]) return;
-      const est = String(r[8] || '').trim().toLowerCase();
+    screenReports.forEach((r, idx) => {
+      const hasData = r.some(c => c !== '' && c !== null && c !== undefined);
+      if (!hasData) return;
+      const id = r[0] ? String(r[0]).trim() : ('SCR_AUTO_' + (idx + 1));
+      const parsed = extractStatusTimePhotos(r, 8, 9, 10, 11);
+      const est = String(parsed.estado || '').trim().toLowerCase();
       if (est === 'abierta') openTotal++;
       if (est === 'gestionado') pendingTotal++;
 
       allReports.push({
-        id: r[0],
+        id: id,
         fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
         usuario: r[2],
         cuenta: r[3],
         tienda: r[4],
+        rms: r[5] || '',
         categoria: 'Pantalla Digital',
         subcategoria: '',
         enviar: '',
         motivo: '',
+        cantidad: 1,
         descripcion: r[7] || '',
-        estado: r[8] || 'Abierta',
-        fechaCierre: r[9] || '',
-        tiempo: r[10] || 0,
-        fotos: r[11] || '',
+        estado: parsed.estado || 'Abierta',
+        fechaCierre: parsed.fechaCierre,
+        tiempo: parsed.tiempo,
+        fotos: parsed.fotos,
         tipo: 'Pantalla Digital'
       });
     });
@@ -416,9 +523,10 @@ function getDashboardData(ss, rol) {
   if (lonaReports.length > 1) {
     lonaReports.shift();
     const lonaMap = {};
-    lonaReports.forEach(r => {
-      if (!r[0]) return;
-      const id = r[0];
+    lonaReports.forEach((r, idx) => {
+      const hasData = r.some(c => c !== '' && c !== null && c !== undefined);
+      if (!hasData) return;
+      const id = r[0] ? String(r[0]).trim() : ('LONA_AUTO_' + (idx + 1));
       const item = {
         modelo: r[9] || '',
         codigoDispositivo: r[10] || '',
@@ -426,7 +534,8 @@ function getDashboardData(ss, rol) {
       };
       
       if (!lonaMap[id]) {
-        const est = String(r[14] || '').trim().toLowerCase();
+        const parsed = extractStatusTimePhotos(r, 14, 15, 16, 17);
+        const est = String(parsed.estado || '').trim().toLowerCase();
         if (est === 'abierta') openTotal++;
         if (est === 'gestionado') pendingTotal++;
         
@@ -436,9 +545,10 @@ function getDashboardData(ss, rol) {
           usuario: r[2],
           cuenta: r[3],
           tienda: r[4],
+          rms: r[5] || '',
           categoria: 'Lona',
           tipologia: r[7] || '', 
-          subcategoria: r[7] || '', // Usamos tipología como subcategoría para compatibilidad de la vista
+          subcategoria: r[7] || '',
           enviar: r[12] || '',
           motivo: r[8] || '',
           descripcion: r[13] || '',
@@ -474,14 +584,17 @@ function getDashboardData(ss, rol) {
         if (estado.includes('pendient')) incidentStats.pendientes++;
       });
       
-      mappedIncidents = incData.map(r => {
+      mappedIncidents = incData.map((r, idx) => {
         return {
-          id: r[0],
+          id: r[0] ? String(r[0]).trim() : ('INC_AUTO_' + (idx + 1)),
           fecha: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, "yyyy-MM-dd HH:mm:ss") : r[1],
           usuario: r[2],
           cuenta: r[3],
           tienda: r[4],
+          rms: r[5] || '',
           tipo: 'Lanzamiento: ' + (r[6] || ''),
+          cantidad: 1,
+          enviar: '',
           descripcion: r[7],
           estado: r[8],
           tiempo: r[9],
@@ -531,13 +644,15 @@ function getLaunchStatuses(ss, usuario, lanzamiento) {
     try {
       const ssECI = SpreadsheetApp.openById(idECI);
       const sheetECI = ssECI.getSheets()[0];
-      const dataECI = sheetECI.getRange(2, 2, sheetECI.getLastRow(), 1).getValues(); // Columna B (Tienda)
-      dataECI.forEach(row => {
-        const storeName = String(row[0] || '').trim();
-        if (storeName) {
-          statuses[storeName] = { estado: 'Realizado' };
-        }
-      });
+      if (sheetECI && sheetECI.getLastRow() >= 2) {
+        const dataECI = sheetECI.getRange(2, 2, sheetECI.getLastRow() - 1, 1).getValues(); // Columna B (Tienda)
+        dataECI.forEach(row => {
+          const storeName = String(row[0] || '').trim();
+          if (storeName) {
+            statuses[storeName] = { estado: 'Realizado' };
+          }
+        });
+      }
     } catch (e) {
       console.error("Error leyendo archivo ECI: " + e);
     }
@@ -546,13 +661,15 @@ function getLaunchStatuses(ss, usuario, lanzamiento) {
     try {
       const ssMAC = SpreadsheetApp.openById(idMAC);
       const sheetMAC = ssMAC.getSheets()[0];
-      const dataMAC = sheetMAC.getRange(2, 2, sheetMAC.getLastRow(), 1).getValues(); // Columna B (Tienda)
-      dataMAC.forEach(row => {
-        const storeName = String(row[0] || '').trim();
-        if (storeName) {
-          statuses[storeName] = { estado: 'Realizado' };
-        }
-      });
+      if (sheetMAC && sheetMAC.getLastRow() >= 2) {
+        const dataMAC = sheetMAC.getRange(2, 2, sheetMAC.getLastRow() - 1, 1).getValues(); // Columna B (Tienda)
+        dataMAC.forEach(row => {
+          const storeName = String(row[0] || '').trim();
+          if (storeName) {
+            statuses[storeName] = { estado: 'Realizado' };
+          }
+        });
+      }
     } catch (e) {
       console.error("Error leyendo archivo MAC: " + e);
     }
@@ -1092,7 +1209,9 @@ function resolveIncident(ss, data, session) {
     
     const id = data.id;
     const status = String(data.estado || data.status || 'Solucionado').trim();
-    const isAdmin = session && (session.rol === 'ADMIN' || session.rol === 'ADMINISTRADOR');
+    const sessRol = String(session && session.rol || '').trim().toUpperCase();
+    const sessEmail = String(session && session.email || '').trim().toUpperCase();
+    const isAdmin = sessRol === 'ADMIN' || sessRol === 'ADMINISTRADOR' || sessRol.indexOf('ADMIN') !== -1 || sessRol.indexOf('COORDINAD') !== -1 || sessRol.indexOf('SUPER') !== -1 || sessRol.indexOf('DIRECC') !== -1 || sessRol.indexOf('GESTION') !== -1 || sessRol.indexOf('JEFE') !== -1 || sessEmail.indexOf('ALICIA') !== -1 || sessEmail.indexOf('MURUZABAL') !== -1;
     if (!['Abierta', 'Gestionado', 'Solucionado'].includes(status)) {
       return { success: false, error: 'Estado de incidencia no válido' };
     }
@@ -1455,29 +1574,27 @@ function deleteReport(ss, id) {
 }
 
 /**
- * LEE LOS DATOS A VELOCIDAD DE LA LUZ EVITANDO FILAS FANTASMA
- * Esta función busca la última fila REAL en lugar de confiar en getDataRange()
- * que puede atascarse si el excel tiene celdas vacías con bordes o formato.
+ * LEE LOS DATOS DE FORMA COMPLETA Y ROBUSTA SIN LIMITACIÓN DE FILAS
+ * Lee hasta la última fila y columna con contenido real de la hoja,
+ * sin depender exclusivamente de la Columna A ni quedar limitado por rangos fijos.
  */
 function getFastValues(sheet) {
   if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return [];
+  if (lastRow === 0 || lastCol === 0) return [];
   
-  // 1. Leemos SOLO la Columna A entera (muy rápido, incluso con miles de filas)
-  const colA = sheet.getRange(1, 1, sheet.getMaxRows(), 1).getValues();
+  // Leemos todo el rango de datos reales hasta la última fila detectada
+  const values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   
-  // 2. Encontrar la última fila con contenido REAL empezando desde el final
-  let lastRow = colA.length;
-  while (lastRow > 0 && String(colA[lastRow - 1][0] || '').trim() === "") {
-    lastRow--;
+  // Limpieza defensiva de filas completamente vacías al final
+  while (values.length > 0) {
+    const last = values[values.length - 1];
+    const hasData = last.some(cell => cell !== '' && cell !== null && cell !== undefined);
+    if (hasData) break;
+    values.pop();
   }
-  
-  // Si no hay datos, devolver vacío
-  if (lastRow === 0) return [];
-  
-  // 3. Leemos el rango EXACTO de datos reales. Instantáneo.
-  return sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  return values;
 }
 
 // ==================================================
@@ -1658,3 +1775,776 @@ function markInstantMessageRead(ss, messageId) {
     lock.releaseLock();
   }
 }
+
+// ==================================================
+// REPLICACIÓN Y GESTIÓN DE LDUS DUMMY STOCK Y DEVOLUCIONES EN GOOGLE SHEETS
+// Pestañas maestras: 'LDUS DUMMY STOCK' y 'DEVOLUCIONES'
+// ==================================================
+
+function getLdusStockSheet(ss) {
+  let sheet = getSheetDefensive(ss, 'LDUS DUMMY STOCK');
+  if (!sheet) sheet = getSheetDefensive(ss, 'LDUS DUMMY STORE');
+  return sheet;
+}
+
+function ensureLdusStockSheet(ss) {
+  let sheet = getLdusStockSheet(ss);
+  if (!sheet) {
+    sheet = ss.insertSheet('LDUS DUMMY STOCK');
+    sheet.appendRow([
+      'Retailer', 'StoreCode', 'Tienda', 'Nº mesas', 'Mesa', 'Producto (listado)',
+      'IMEI', 'Estado', 'Otros IMEI (unidades adicionales)', 'Observación'
+    ]);
+  }
+  return sheet;
+}
+
+function getDevolucionesSheet(ss) {
+  return getSheetDefensive(ss, 'DEVOLUCIONES');
+}
+
+function ensureDevolucionesSheet(ss) {
+  let sheet = getDevolucionesSheet(ss);
+  if (!sheet) {
+    sheet = ss.insertSheet('DEVOLUCIONES');
+    sheet.appendRow([
+      'Retailer', 'StoreCode', 'Tienda', 'Dispositivo', 'FechaCheck',
+      'IMEI', 'Estado', 'Mueble', 'Devoluciones FF', 'Tio de producto'
+    ]);
+  }
+  return sheet;
+}
+
+function formatFechaCheck(d) {
+  if (!d) d = new Date();
+  if (typeof d === 'string') {
+    if (d.includes('/')) return d;
+    const parts = d.split('-');
+    if (parts.length === 3) return parts[2].slice(0, 2) + '/' + parts[1] + '/' + parts[0];
+    return d;
+  }
+  const dateObj = new Date(d);
+  if (isNaN(dateObj.getTime())) return new Date().toLocaleDateString('es-ES');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const yyyy = dateObj.getFullYear();
+  return dd + '/' + mm + '/' + yyyy;
+}
+
+function handleRecordDevolucion(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const sheet = ensureDevolucionesSheet(ss);
+    const fechaCheckStr = formatFechaCheck(data.fechaCheck || data.fecha);
+
+    const row = [
+      data.retailer || data.cuenta || '',
+      data.storeCode || data.rms || '',
+      data.tienda || '',
+      data.dispositivo || data.dispositivoRetirado || data.modeloAnterior || data.modelo || '',
+      fechaCheckStr,
+      data.imei !== undefined ? String(data.imei) : (data.imeiRetirado !== undefined ? String(data.imeiRetirado) : (data.imeiAnterior ? String(data.imeiAnterior) : '')),
+      data.estado || data.motivo || 'Cambio de terminal',
+      data.mueble || data.mesa || 'Mesa 1',
+      data.devolucionesFF || data.usuario || 'Field Force',
+      data.tipoProducto || data.tioDeProducto || (data.isDummy ? 'Dummy' : 'LDU')
+    ];
+
+    sheet.appendRow(row);
+
+    // Si el producto devuelto estaba en 'LDUS DUMMY STOCK', su fila debe desaparecer
+    let deletedFromStock = false;
+    try {
+      const sheetStock = getLdusStockSheet(ss);
+      if (sheetStock && sheetStock.getLastRow() >= 2) {
+        let targetRow = Number(data.excelRow || data.row || 0);
+        if (!targetRow || targetRow < 2) {
+          const fastValues = getFastValues(sheetStock);
+          const targetStore = String(data.storeCode || data.rms || data.tienda || '').trim().toLowerCase();
+          const targetMesa = String(data.mueble || data.mesa || '').trim().toLowerCase();
+          const targetMod = String(data.dispositivo || data.dispositivoRetirado || data.modelo || '').trim().toLowerCase();
+          const targetImei = String(data.imei || data.imeiRetirado || '').trim().toLowerCase();
+          for (let i = 1; i < fastValues.length; i++) {
+            const rRms = String(fastValues[i][1] || '').trim().toLowerCase();
+            const rTienda = String(fastValues[i][2] || '').trim().toLowerCase();
+            const rMesa = String(fastValues[i][4] || '').trim().toLowerCase();
+            const rMod = String(fastValues[i][5] || '').trim().toLowerCase();
+            const rImei = String(fastValues[i][6] || '').trim().toLowerCase();
+            if ((rRms === targetStore || rTienda === targetStore) &&
+                (!targetMesa || rMesa === targetMesa) &&
+                (rMod === targetMod || (targetImei && rImei === targetImei))) {
+              targetRow = i + 1;
+              break;
+            }
+          }
+        }
+        if (targetRow && targetRow >= 2 && targetRow <= sheetStock.getLastRow()) {
+          sheetStock.deleteRow(targetRow);
+          deletedFromStock = true;
+        }
+      }
+    } catch(delErr) {
+      console.warn('No se pudo borrar fila de stock:', delErr);
+    }
+
+    return {
+      success: true,
+      message: 'Devolución registrada en DEVOLUCIONES' + (deletedFromStock ? ' y eliminada de LDUS DUMMY STOCK.' : '.'),
+      deletedFromStock: deletedFromStock,
+      row: row
+    };
+  } catch (err) {
+    return { success: false, message: 'Error registrando devolución: ' + err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
+  }
+}
+
+function handleGetDevoluciones(ss) {
+  try {
+    const sheet = getDevolucionesSheet(ss);
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, count: 0, records: [] };
+    }
+    const data = getFastValues(sheet);
+    const records = [];
+    for (let i = 1; i < data.length; i++) {
+      const r = data[i];
+      records.push({
+        row: i + 1,
+        retailer: r[0] || '',
+        storeCode: r[1] || '',
+        tienda: r[2] || '',
+        dispositivo: r[3] || '',
+        fechaCheck: r[4] || '',
+        imei: r[5] || '',
+        estado: r[6] || '',
+        mueble: r[7] || '',
+        devolucionesFF: r[8] || '',
+        tipoProducto: r[9] || ''
+      });
+    }
+    return { success: true, count: records.length, records: records.reverse() };
+  } catch (err) {
+    return { success: false, message: 'Error obteniendo devoluciones: ' + err.toString() };
+  }
+}
+
+function handleReportTerminalChange(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(25000);
+    const fechaCheckStr = formatFechaCheck(data.fechaCheck || data.fecha);
+
+    // 1. REGISTRAR DEVOLUCIÓN EN LA PESTAÑA 'DEVOLUCIONES'
+    const sheetDev = ensureDevolucionesSheet(ss);
+    const devRow = [
+      data.retailer || data.cuenta || '',
+      data.storeCode || data.rms || '',
+      data.tienda || '',
+      data.dispositivoRetirado || data.modeloAnterior || data.modelo || '',
+      fechaCheckStr,
+      data.imeiRetirado !== undefined ? String(data.imeiRetirado) : (data.imeiAnterior !== undefined ? String(data.imeiAnterior) : ''),
+      data.motivo || data.estado || 'Cambio de terminal',
+      data.mueble || data.mesa || 'Mesa 1',
+      data.devolucionesFF || data.usuario || 'Field Force',
+      data.tipoProducto || (data.isDummy ? 'Dummy' : 'LDU')
+    ];
+    sheetDev.appendRow(devRow);
+
+    // 2. ACTUALIZAR PUESTO EN LA PESTAÑA 'LDUS DUMMY STOCK'
+    const sheetStock = ensureLdusStockSheet(ss);
+    let targetRow = Number(data.excelRow || data.row || 0);
+    const fastValues = getFastValues(sheetStock);
+    const targetStore = String(data.storeCode || data.rms || data.tienda || '').trim().toLowerCase();
+    const targetMesa = String(data.mueble || data.mesa || '').trim().toLowerCase();
+    const targetModRet = String(data.dispositivoRetirado || data.modeloAnterior || data.modelo || '').trim().toLowerCase();
+    const targetImei = String(data.imeiRetirado !== undefined ? data.imeiRetirado : (data.imeiAnterior || '')).trim();
+
+    // Comprobar si targetRow apunta exactamente a la tienda y modelo/imei esperado
+    let isRowDirectMatch = false;
+    if (targetRow >= 2 && targetRow <= fastValues.length) {
+      const r = fastValues[targetRow - 1];
+      const rRms = String(r[1] || '').trim().toLowerCase();
+      const rTienda = String(r[2] || '').trim().toLowerCase();
+      const rMod = String(r[5] || '').trim().toLowerCase();
+      const rImei = String(r[6] || '').trim();
+
+      if ((!targetStore || rRms === targetStore || rTienda === targetStore) &&
+          (!targetModRet || rMod === targetModRet || (targetImei && rImei === targetImei))) {
+        isRowDirectMatch = true;
+      }
+    }
+
+    // Si no coincide directamente (por eliminaciones previas que desplazaron las filas), buscar por contenido
+    if (!isRowDirectMatch) {
+      targetRow = 0;
+      for (let i = 1; i < fastValues.length; i++) {
+        const rRms = String(fastValues[i][1] || '').trim().toLowerCase();
+        const rTienda = String(fastValues[i][2] || '').trim().toLowerCase();
+        const rMesa = String(fastValues[i][4] || '').trim().toLowerCase();
+        const rMod = String(fastValues[i][5] || '').trim().toLowerCase();
+        const rImei = String(fastValues[i][6] || '').trim();
+
+        const matchesStore = !targetStore || rRms === targetStore || rTienda === targetStore;
+        const matchesMesa = !targetMesa || rMesa === targetMesa;
+        const matchesModelOrImei = (!targetModRet || rMod === targetModRet) || (targetImei && rImei === targetImei);
+
+        if (matchesStore && matchesMesa && matchesModelOrImei) {
+          targetRow = i + 1;
+          break;
+        }
+      }
+    }
+
+    let stockUpdated = false;
+    const isDevolucionPura = data.isDevolucion === true || 
+                             String(data.tipoAccion || data.motivo || '').toLowerCase().includes('devoluc') || 
+                             !data.nuevoModelo;
+
+    if (targetRow && targetRow >= 2 && targetRow <= sheetStock.getLastRow()) {
+      if (isDevolucionPura) {
+        // En devolución: la fila en LDUS DUMMY STOCK debe desaparecer completamente
+        sheetStock.deleteRow(targetRow);
+        stockUpdated = true;
+      } else {
+        // Col F (6): Producto (listado) -> Nuevo modelo que sustituye al retirado
+        if (data.nuevoModelo) {
+          sheetStock.getRange(targetRow, 6).setValue(String(data.nuevoModelo));
+        }
+        // Col G (7): IMEI -> Nuevo IMEI
+        sheetStock.getRange(targetRow, 7).setValue(data.nuevoImei !== undefined ? String(data.nuevoImei) : '');
+        // Col H (8): Estado
+        sheetStock.getRange(targetRow, 8).setValue(data.isDummy ? 'Maqueta dummy' : 'Disponible en tienda');
+        // Col J (10): Observación
+        const obsTexto = (data.observaciones ? data.observaciones + ' · ' : '') + 
+          `Sustitución ${fechaCheckStr}. Retirado a DEVOLUCIONES: ${data.dispositivoRetirado || ''} [${data.imeiRetirado || 'Sin IMEI'}]`;
+        sheetStock.getRange(targetRow, 10).setValue(obsTexto);
+
+        // Si la hoja tiene columnas adicionales K, L, M
+        if (sheetStock.getLastColumn() >= 13) {
+          sheetStock.getRange(targetRow, 11).setValue('Cambio de modelo');
+          sheetStock.getRange(targetRow, 12).setValue(data.usuario || '');
+          sheetStock.getRange(targetRow, 13).setValue(new Date());
+        }
+        stockUpdated = true;
+      }
+    }
+
+    // 3. AUDITORÍA EN 'Registro_Feishu_IMEIs'
+    let auditSheet = getSheetDefensive(ss, 'Registro_Feishu_IMEIs');
+    if (!auditSheet) {
+      auditSheet = ss.insertSheet('Registro_Feishu_IMEIs');
+      auditSheet.appendRow([
+        'Fecha/Hora', 'Retailer', 'StoreCode', 'Tienda', 'Mesa', 'Posición',
+        'Modelo', 'Código', 'IMEI', 'Tipología', 'Acción', 'Motivo',
+        'Modelo Anterior', 'IMEI Anterior', 'Observaciones', 'Usuario', 'Fila Hoja'
+      ]);
+    }
+    auditSheet.appendRow([
+      new Date().toISOString(),
+      data.retailer || data.cuenta || '',
+      data.storeCode || data.rms || '',
+      data.tienda || '',
+      data.mueble || data.mesa || '',
+      data.posicion || 1,
+      data.nuevoModelo || '',
+      data.codigo || '',
+      data.nuevoImei || '',
+      data.tipoProducto || (data.isDummy ? 'Dummy' : 'LDU'),
+      'Cambio de terminal',
+      data.motivo || 'Cambio de terminal',
+      data.dispositivoRetirado || data.modeloAnterior || '',
+      data.imeiRetirado || data.imeiAnterior || '',
+      data.observaciones || '',
+      data.usuario || '',
+      targetRow || ''
+    ]);
+
+    return {
+      success: true,
+      message: 'Cambio de terminal guardado: actualizado en LDUS DUMMY STOCK y añadido a DEVOLUCIONES.',
+      stockUpdated: stockUpdated,
+      targetRow: targetRow,
+      devolucionRow: devRow
+    };
+  } catch (err) {
+    return { success: false, message: 'Error en reportTerminalChange: ' + err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
+  }
+}
+
+function handleUpdateFeishuImei(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const sheet = ensureLdusStockSheet(ss);
+    
+    // 1. Determinar fila exacta
+    let targetRow = Number(data.excelRow || data.row || 0);
+
+    // Si no tenemos número de fila o es inválido, buscar por StoreCode/Tienda + Mesa + Modelo
+    if (!targetRow || targetRow < 2) {
+      const fastValues = getFastValues(sheet);
+      const targetStore = String(data.rms || data.storeCode || data.tienda || '').trim().toLowerCase();
+      const targetMesa = String(data.mesa || '').trim().toLowerCase();
+      const targetMod = String(data.modeloAnterior || data.modelo || '').trim().toLowerCase();
+
+      for (let i = 1; i < fastValues.length; i++) {
+        const rRms = String(fastValues[i][1] || '').trim().toLowerCase(); // Col B (StoreCode)
+        const rTienda = String(fastValues[i][2] || '').trim().toLowerCase(); // Col C (Tienda)
+        const rMesa = String(fastValues[i][4] || '').trim().toLowerCase(); // Col E (Mesa)
+        const rMod = String(fastValues[i][5] || '').trim().toLowerCase(); // Col F (Producto)
+
+        if ((rRms === targetStore || rTienda === targetStore) && rMesa === targetMesa && rMod === targetMod) {
+          targetRow = i + 1;
+          break;
+        }
+      }
+    }
+
+    let cloudUpdated = false;
+    if (targetRow && targetRow >= 2 && targetRow <= sheet.getLastRow()) {
+      // Si se envió un nuevo modelo (o cambio), actualizar Col F (6)
+      if (data.modelo) {
+        sheet.getRange(targetRow, 6).setValue(String(data.modelo));
+      }
+      // Col G (7): IMEI
+      sheet.getRange(targetRow, 7).setValue(data.imei !== undefined ? String(data.imei) : '');
+      // Col H (8): Estado
+      sheet.getRange(targetRow, 8).setValue(data.estado || (data.isDummy ? 'Maqueta dummy' : 'Disponible en tienda'));
+      // Col J (10): Observación
+      if (data.observacionCambio || data.observaciones) {
+        sheet.getRange(targetRow, 10).setValue(String(data.observacionCambio || data.observaciones));
+      }
+      if (sheet.getLastColumn() >= 13) {
+        sheet.getRange(targetRow, 11).setValue(data.tipoAccion || 'Asignación IMEI');
+        sheet.getRange(targetRow, 12).setValue(data.usuario || '');
+        sheet.getRange(targetRow, 13).setValue(new Date());
+      }
+      cloudUpdated = true;
+    }
+
+    // Si es un cambio de modelo o rotura con sustitución, registrar automáticamente la devolución en 'DEVOLUCIONES'
+    if (data.tipoAccion === 'Cambio de modelo' || data.modeloAnterior || data.isDevolucion) {
+      try {
+        handleRecordDevolucion(ss, {
+          retailer: data.cuenta || data.retailer || '',
+          storeCode: data.rms || data.storeCode || '',
+          tienda: data.tienda || '',
+          dispositivo: data.modeloAnterior || data.dispositivoRetirado || data.modelo || '',
+          imei: data.imeiAnterior || data.imeiRetirado || '',
+          estado: data.motivoCambio || data.tipoAccion || 'Cambio de modelo',
+          mueble: data.mesa || 'Mesa 1',
+          devolucionesFF: data.usuario || 'Field Force',
+          tipoProducto: data.tipologia || (data.isDummy ? 'Dummy' : 'LDU'),
+          fechaCheck: data.fecha || ''
+        });
+      } catch (devErr) {
+        console.warn('Error registrando devolución automática:', devErr);
+      }
+    }
+
+    // 2. Registro histórico de auditoría en 'Registro_Feishu_IMEIs'
+    let auditSheet = getSheetDefensive(ss, 'Registro_Feishu_IMEIs');
+    if (!auditSheet) {
+      auditSheet = ss.insertSheet('Registro_Feishu_IMEIs');
+      auditSheet.appendRow([
+        'Fecha/Hora', 'Retailer', 'StoreCode', 'Tienda', 'Mesa', 'Posición',
+        'Modelo', 'Código', 'IMEI', 'Tipología', 'Acción', 'Motivo',
+        'Modelo Anterior', 'IMEI Anterior', 'Observaciones', 'Usuario', 'Fila Hoja'
+      ]);
+    }
+    auditSheet.appendRow([
+      data.timestamp || new Date().toISOString(),
+      data.cuenta || data.retailer || '',
+      data.rms || data.storeCode || '',
+      data.tienda || data.storeName || '',
+      data.mesa || '',
+      data.posicion || '',
+      data.modelo || '',
+      data.codigo || '',
+      data.imei || '',
+      data.tipologia || '',
+      data.tipoAccion || '',
+      data.motivoCambio || '',
+      data.modeloAnterior || '',
+      data.imeiAnterior || '',
+      data.observacionCambio || data.observaciones || '',
+      data.usuario || '',
+      targetRow || ''
+    ]);
+
+    return {
+      success: true,
+      cloudUpdated: cloudUpdated,
+      row: targetRow,
+      message: cloudUpdated 
+        ? `Guardado directamente en Google Sheets (LDUS DUMMY STOCK, Fila ${targetRow})`
+        : 'Registrado en el historial de la nube.'
+    };
+  } catch (err) {
+    return { success: false, message: 'Error al guardar en Google Sheets: ' + err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
+  }
+}
+
+function handleBulkUpdateFeishuImeis(ss, data) {
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (items.length === 0) {
+    return { success: true, count: 0, message: 'No hay elementos para actualizar' };
+  }
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(25000);
+    const sheet = ensureLdusStockSheet(ss);
+    const lastRow = sheet.getLastRow();
+    let updatedCount = 0;
+
+    // Actualización de celdas en LDUS DUMMY STOCK
+    items.forEach(item => {
+      const row = Number(item.excelRow || item.row || 0);
+      if (row >= 2 && row <= lastRow) {
+        if (item.modelo) {
+          sheet.getRange(row, 6).setValue(String(item.modelo));
+        }
+        sheet.getRange(row, 7).setValue(item.imei !== undefined ? String(item.imei) : '');
+        sheet.getRange(row, 8).setValue(item.estado || (item.isDummy ? 'Maqueta dummy' : 'Disponible en tienda'));
+        if (item.observacionCambio || item.observaciones) {
+          sheet.getRange(row, 10).setValue(String(item.observacionCambio || item.observaciones));
+        }
+        if (sheet.getLastColumn() >= 13) {
+          sheet.getRange(row, 11).setValue(item.tipoAccion || 'Asignación IMEI');
+          sheet.getRange(row, 12).setValue(item.usuario || data.usuario || '');
+          sheet.getRange(row, 13).setValue(new Date());
+        }
+        updatedCount++;
+
+        // Registrar devolución si es cambio de modelo
+        if (item.tipoAccion === 'Cambio de modelo' || item.modeloAnterior) {
+          try {
+            handleRecordDevolucion(ss, {
+              retailer: item.cuenta || item.retailer || '',
+              storeCode: item.rms || item.storeCode || '',
+              tienda: item.tienda || '',
+              dispositivo: item.modeloAnterior || item.modelo || '',
+              imei: item.imeiAnterior || '',
+              estado: item.motivoCambio || item.tipoAccion || 'Cambio de modelo',
+              mueble: item.mesa || 'Mesa 1',
+              devolucionesFF: item.usuario || data.usuario || 'Field Force',
+              tipoProducto: item.tipologia || (item.isDummy ? 'Dummy' : 'LDU'),
+              fechaCheck: item.fecha || ''
+            });
+          } catch(e) {}
+        }
+      }
+    });
+
+    // Guardado en auditoría
+    let auditSheet = getSheetDefensive(ss, 'Registro_Feishu_IMEIs');
+    if (!auditSheet) {
+      auditSheet = ss.insertSheet('Registro_Feishu_IMEIs');
+      auditSheet.appendRow([
+        'Fecha/Hora', 'Retailer', 'StoreCode', 'Tienda', 'Mesa', 'Posición',
+        'Modelo', 'Código', 'IMEI', 'Tipología', 'Acción', 'Motivo',
+        'Modelo Anterior', 'IMEI Anterior', 'Observaciones', 'Usuario', 'Fila Hoja'
+      ]);
+    }
+
+    const auditRows = items.map(item => [
+      item.timestamp || new Date().toISOString(),
+      item.cuenta || item.retailer || '',
+      item.rms || item.storeCode || '',
+      item.tienda || item.storeName || '',
+      item.mesa || '',
+      item.posicion || '',
+      item.modelo || '',
+      item.codigo || '',
+      item.imei || '',
+      item.tipologia || '',
+      item.tipoAccion || '',
+      item.motivoCambio || '',
+      item.modeloAnterior || '',
+      item.imeiAnterior || '',
+      item.observacionCambio || item.observaciones || '',
+      item.usuario || data.usuario || '',
+      item.excelRow || ''
+    ]);
+
+    const auditLastRow = auditSheet.getLastRow();
+    auditSheet.getRange(auditLastRow + 1, 1, auditRows.length, 17).setValues(auditRows);
+
+    return {
+      success: true,
+      count: items.length,
+      updatedInSheet: updatedCount,
+      cloudUpdated: true,
+      message: `Se han actualizado ${items.length} terminales directamente en Google Sheets (LDUS DUMMY STOCK).`
+    };
+  } catch (err) {
+    return { success: false, message: 'Error al sincronizar lote en Google Sheets: ' + err.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleGetFeishuImeis(ss) {
+  try {
+    const sheet = getLdusStockSheet(ss);
+    if (sheet && sheet.getLastRow() >= 2) {
+      const data = getFastValues(sheet);
+      const records = [];
+      const storeMesas = {};
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const storeName = String(row[2] || '').trim();
+        const numMesas = Number(row[3]) || 0;
+        if (storeName && numMesas > 0) {
+          storeMesas[storeName] = numMesas;
+        }
+        const modelo = String(row[5] || '').trim();
+        const imei = String(row[6] || '').trim();
+        const estado = String(row[7] || '').trim();
+        const observacion = String(row[9] || '').trim();
+        const tipoAccion = String(row[10] || '').trim();
+        const isDummy = estado.toLowerCase().includes('dummy') || modelo.toLowerCase().includes('dummy');
+
+        if (modelo || imei || tipoAccion || observacion || isDummy) {
+          records.push({
+            excelRow: i + 1,
+            cuenta: row[0] || '',
+            rms: row[1] || '',
+            tienda: storeName,
+            numMesas: numMesas,
+            mesa: row[4] || '',
+            modelo: modelo,
+            imei: imei,
+            estado: estado,
+            isDummy: isDummy,
+            observacionCambio: observacion,
+            tipoAccion: tipoAccion,
+            usuario: row[11] || '',
+            fechaModificacion: row[12] || ''
+          });
+        }
+      }
+      return {
+        success: true,
+        source: 'google_sheets_ldus',
+        count: records.length,
+        totalRowsInSheet: data.length - 1,
+        storeMesas: storeMesas,
+        records: records
+      };
+    }
+
+    // Fallback a Registro_Feishu_IMEIs si la pestaña principal aún no tiene datos
+    const auditSheet = getSheetDefensive(ss, 'Registro_Feishu_IMEIs');
+    if (!auditSheet) {
+      return { success: true, source: 'none', records: [] };
+    }
+    const data = getFastValues(auditSheet);
+    if (data.length <= 1) return { success: true, source: 'none', records: [] };
+    const records = [];
+    for (let i = 1; i < data.length; i++) {
+      records.push({
+        excelRow: data[i][16] || null,
+        timestamp: data[i][0],
+        cuenta: data[i][1],
+        rms: data[i][2],
+        tienda: data[i][3],
+        mesa: data[i][4],
+        posicion: data[i][5],
+        modelo: data[i][6],
+        codigo: data[i][7],
+        imei: data[i][8],
+        tipologia: data[i][9],
+        tipoAccion: data[i][10],
+        motivoCambio: data[i][11],
+        modeloAnterior: data[i][12],
+        imeiAnterior: data[i][13],
+        observacionCambio: data[i][14],
+        usuario: data[i][15]
+      });
+    }
+    return { success: true, source: 'google_sheets_audit', records: records };
+  } catch (err) {
+    return { success: false, message: 'Error leyendo Google Sheets: ' + err.toString() };
+  }
+}
+
+function handleGetLdusStockStatus(ss) {
+  try {
+    const sheet = getLdusStockSheet(ss);
+    if (!sheet) {
+      return { success: true, exists: false, totalRows: 0, message: 'La pestaña LDUS DUMMY STOCK no existe aún en Google Sheets.' };
+    }
+    const total = Math.max(0, sheet.getLastRow() - 1);
+    let filled = 0;
+    if (total > 0) {
+      const vals = sheet.getRange(2, 7, total, 1).getValues();
+      for (let i = 0; i < vals.length; i++) {
+        if (String(vals[i][0] || '').trim()) filled++;
+      }
+    }
+    return {
+      success: true,
+      exists: true,
+      tabName: sheet.getName(),
+      totalRows: total,
+      filledImeis: filled,
+      pendingImeis: total - filled,
+      message: `Pestaña activa: '${sheet.getName()}'. Total registros: ${total}, Rellenados: ${filled}, Pendientes: ${total - filled}.`
+    };
+  } catch (err) {
+    return { success: false, message: 'Error consultando estado de LDUS STOCK: ' + err.toString() };
+  }
+}
+
+function handleInitLdusStockSheet(ss, data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+    let sheet = getSheetDefensive(ss, 'LDUS DUMMY STOCK');
+    if (!sheet) {
+      sheet = ss.insertSheet('LDUS DUMMY STOCK');
+    }
+    
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    if (rows.length === 0) {
+      return { success: false, message: 'No se recibieron filas para insertar.' };
+    }
+
+    if (data.clearExisting) {
+      sheet.clear();
+    }
+
+    // Cabecera si la hoja está vacía
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        'Retailer', 'StoreCode', 'Tienda', 'Nº mesas', 'Mesa', 'Producto (listado)',
+        'IMEI', 'Estado', 'Otros IMEI (unidades adicionales)', 'Observación',
+        'Tipo Acción', 'Usuario Modificación', 'Fecha Modificación'
+      ]);
+    }
+
+    const startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+
+    return {
+      success: true,
+      message: `Se insertaron ${rows.length} filas en 'LDUS DUMMY STOCK'. Total filas en hoja: ${sheet.getLastRow()}.`,
+      totalRows: sheet.getLastRow()
+    };
+  } catch (err) {
+    return { success: false, message: 'Error inicializando hoja: ' + err.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ==================================================
+// SINCRONIZACIÓN DE TIENDAS MM (110 CON MESA) EN HOJA 'Tiendas'
+// Actualiza Media Puerto Sagunto (MIESD03195) y añade Media Ponferrada (CES005180)
+// Puede ejecutarse directamente desde el editor de Apps Script o vía Webhook
+// ==================================================
+function syncMissingMMStoresToSheet(ss) {
+  if (!ss) ss = SpreadsheetApp.openById(CONFIG.SS_ID);
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const sheet = getSheetDefensive(ss, 'Tiendas');
+    if (!sheet) return { success: false, message: 'Hoja "Tiendas" no encontrada en la hoja de cálculo.' };
+
+    const data = sheet.getDataRange().getValues();
+    let saguntoUpdated = false;
+    let saguntoRow = 0;
+    let ponferradaExists = false;
+    let ponferradaRow = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const rms = String(data[i][0] || '').trim();
+      const tienda = String(data[i][2] || '').trim().toLowerCase();
+
+      // 1. Media Puerto Sagunto (MIESD03195) -> Activar Mesa: 1, Top Table: 1, Tipo de mesa: 4.5
+      if (rms === 'MIESD03195' || tienda.includes('sagunto')) {
+        saguntoRow = i + 1;
+        sheet.getRange(saguntoRow, 5).setValue(1);     // Col E (5): Mesa
+        sheet.getRange(saguntoRow, 8).setValue(1);     // Col H (8): Top Table
+        sheet.getRange(saguntoRow, 12).setValue(4.5);  // Col L (12): Tipo de mesa
+        saguntoUpdated = true;
+      }
+
+      // 2. Ajustes según Hoja de ruta (Barakaldo, Majadahonda, Málaga, Toledo)
+      if (rms === 'MIESS00030') { // Media Barakaldo-Bilbao -> 2 Mesas
+        sheet.getRange(i + 1, 5).setValue(2);
+      }
+      if (rms === 'MIESD00190') { // Media Majadahonda -> 2 Mesas
+        sheet.getRange(i + 1, 5).setValue(2);
+      }
+      if (rms === 'MIESO00041') { // Media Malaga -> 2 Mesas
+        sheet.getRange(i + 1, 5).setValue(2);
+      }
+      if (rms === 'MIESD00199') { // Media Toledo -> 1 Mesa
+        sheet.getRange(i + 1, 5).setValue(1);
+      }
+
+      // 3. Comprobar si Media Ponferrada ya existe
+      if (rms === 'CES005180' || tienda.includes('ponferrada')) {
+        ponferradaExists = true;
+        ponferradaRow = i + 1;
+      }
+    }
+
+    let ponferradaAdded = false;
+    if (!ponferradaExists) {
+      // Estructura: Codigo RMS | Cuenta | Tienda | USUARIO | Mesa | Columna | Wall | Top Table | Lightbox Column | Lightbox Wall | Url Guia | Tipo de mesa | AM
+      const newStoreRow = [
+        'CES005180',
+        'MM',
+        'Media Ponferrada',
+        'Francisco Paz',
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        '',
+        4.5,
+        'Luis Angel Minguez'
+      ];
+      sheet.appendRow(newStoreRow);
+      ponferradaAdded = true;
+      ponferradaRow = sheet.getLastRow();
+    }
+
+    SpreadsheetApp.flush();
+
+    const resultMsg = `Sincronización finalizada: ` +
+      (saguntoUpdated ? `Media Puerto Sagunto activada en fila ${saguntoRow} (Mesa=1). ` : `Media Puerto Sagunto no requirió cambio. `) +
+      (ponferradaAdded ? `Media Ponferrada añadida en fila ${ponferradaRow} (Mesa=1).` : `Media Ponferrada ya existía en fila ${ponferradaRow}.`);
+
+    Logger.log(resultMsg);
+    return {
+      success: true,
+      message: resultMsg,
+      saguntoUpdated: saguntoUpdated,
+      saguntoRow: saguntoRow,
+      ponferradaAdded: ponferradaAdded,
+      ponferradaExists: ponferradaExists,
+      ponferradaRow: ponferradaRow
+    };
+  } catch (err) {
+    Logger.log('Error en syncMissingMMStoresToSheet: ' + err.toString());
+    return { success: false, message: 'Error al sincronizar tiendas MM: ' + err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
+  }
+}
+
+

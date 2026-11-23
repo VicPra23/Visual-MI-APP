@@ -3,9 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Xiaomi VISUAL APP</title>
-    <link rel="stylesheet" href="style_v128.css?v=143">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="32x32" href="logo.png?v=219">
+    <link rel="icon" type="image/png" sizes="16x16" href="logo.png?v=219">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico?v=219">
+    <link rel="apple-touch-icon" sizes="180x180" href="logo.png?v=219">
+    <script>
+    // AUTO-PURGA Y FORZADO DE ACTUALIZACIÓN DE CACHÉ
+    const CURRENT_VERSION = 'v231_new_backend_url';
+    window.APP_VERSION = CURRENT_VERSION;
+
+    window.forceAppUpdate = async function(isAutomatic = true) {
+        console.log('🔄 Purgando cachés y forzando actualización a ' + CURRENT_VERSION);
+        try {
+            localStorage.removeItem('xiaomi_imei_db');
+            localStorage.removeItem('xiaomi_imei_db_v155');
+            localStorage.removeItem('xiaomi_imei_db_v156');
+            localStorage.removeItem('xiaomi_imei_db_v157');
+            localStorage.removeItem('xiaomi_imei_db_v158');
+            localStorage.removeItem('xiaomi_imei_db_v159');
+            localStorage.removeItem('xiaomi_imei_db_v160');
+            localStorage.removeItem('xiaomi_imei_db_v161');
+            localStorage.removeItem('xiaomi_imei_db_v162');
+            localStorage.removeItem('xiaomi_imei_db_v163');
+            localStorage.removeItem('xiaomi_campaign_planograms');
+            localStorage.removeItem('xiaomi_campaign_planograms_v155');
+            localStorage.removeItem('xiaomi_campaign_planograms_v156');
+            localStorage.removeItem('xiaomi_store_mesas_v187');
+            localStorage.removeItem('cached_users_list');
+            // Limpieza de notificaciones y estados fantasma
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('xiaomi_notifications_') || key.startsWith('xiaomi_states_cache_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            localStorage.setItem('xiaomi_app_version', CURRENT_VERSION);
+            sessionStorage.clear();
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(regs.map(r => r.unregister()));
+            }
+        } catch(e) {
+            console.warn('Aviso limpiando caché:', e);
+        }
+        // Redirigir con parámetro cache-buster
+        const base = window.location.href.split('?')[0].split('#')[0];
+        window.location.replace(base + '?v=' + Date.now());
+    };
+
+
+    window.showUpdateModal = function() {
+        const modal = document.getElementById('app-update-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+        }
+    };
+
+    window.dismissUpdateModal = function() {
+        const modal = document.getElementById('app-update-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        }
+        sessionStorage.setItem('dismissed_update_' + CURRENT_VERSION, 'true');
+    };
+
+    window.confirmAppUpdate = function() {
+        window.forceAppUpdate(true);
+    };
+
+    // Auto-detección de actualización: abre pop-up si hay nueva versión
+    (function() {
+        const saved = localStorage.getItem('xiaomi_app_version');
+        const dismissed = sessionStorage.getItem('dismissed_update_' + CURRENT_VERSION);
+        if (saved && saved !== CURRENT_VERSION && !dismissed) {
+            window.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    window.showUpdateModal();
+                }, 600);
+            });
+        } else if (!saved) {
+            localStorage.setItem('xiaomi_app_version', CURRENT_VERSION);
+        }
+
+        // Listener en tiempo real de Service Worker actualizado
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.showUpdateModal();
+            });
+        }
+
+        // En entorno local (localhost o 127.0.0.1), asegurar desregistro de Service Workers residuales
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    regs.forEach(r => r.unregister());
+                });
+            }
+        }
+    })();
+    </script>
+    <link rel="stylesheet" href="style_v128.css?v=231">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
     window.onerror = function(message, source, lineno, colno, error) {
@@ -38,13 +147,11 @@
     };
     </script>
     <link rel="manifest" href="./manifest.json">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 </head>
 <body>
     <div id="login-container" class="view">
         <div class="login-card">
-            <img src="logo.png" alt="Xiaomi Logo" class="logo">
+            <img src="logo.png?v=214" alt="Xiaomi Logo" class="logo">
             <h1>Xiaomi VISUAL APP</h1>
             <p>Inicia sesión con tu cuenta Mi</p>
             <form id="login-form">
@@ -58,6 +165,11 @@
                 <button type="submit" class="btn-primary">Entrar</button>
             </form>
             <p id="login-error" class="error-msg"></p>
+            <div style="margin-top: 15px; text-align: center;">
+                <button type="button" onclick="window.forceAppUpdate()" style="background: none; border: none; color: #888; font-size: 12px; cursor: pointer; text-decoration: underline; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-sync-alt"></i> Forzar actualización / Limpiar caché
+                </button>
+            </div>
         </div>
     </div>
 
@@ -66,40 +178,59 @@
         <!-- Mobile Top Bar fixed at the top -->
         <header class="mobile-top-bar">
             <div class="mobile-logo-area" style="cursor: pointer;" onclick="document.querySelector('.sidebar-header').click()">
-                <img src="logo.png" alt="Logo">
+                <img src="logo.png?v=214" alt="Logo">
                 <span>Xiaomi VISUAL APP</span>
             </div>
-            <button id="mobile-logout-btn" class="mobile-logout-icon" title="Cerrar Sesión" onclick="document.getElementById('logout-btn').click()">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="mobile-logout-icon" title="Forzar Actualización" onclick="window.forceAppUpdate()" style="background: rgba(255,255,255,0.15);">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button id="mobile-logout-btn" class="mobile-logout-icon" title="Cerrar Sesión" onclick="document.getElementById('logout-btn').click()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
         </header>
 
         <nav class="sidebar">
             <div class="sidebar-header" style="cursor: pointer;">
-                <img src="logo.png" alt="Logo">
+                <img src="logo.png?v=214" alt="Logo">
                 <span>Xiaomi VISUAL APP</span>
             </div>
-            <ul class="nav-links">
-                <li data-target="dashboard" class="active"><i class="fas fa-chart-line"></i> Dashboard</li>
-                <li data-target="reportes"><i class="fas fa-clipboard-list"></i> Incidencias</li>
-                <!-- <li data-target="lanzamientos"><i class="fas fa-rocket"></i> Lanzamientos</li> -->
-                <li data-target="materiales"><i class="fas fa-store"></i> Tiendas</li>
-                <li data-target="mensajes" style="position:relative;">
-                    <i class="fas fa-bell"></i> Mensajes
-                    <span id="msg-nav-badge" class="nav-badge">0</span>
-                </li>
-                <li id="install-app-btn" style="display: none; background: var(--mi-orange); color: white;"><i class="fas fa-download"></i> Instalar App</li>
-                <li id="enable-notif-btn" style="display: none; background: #28a745; color: white;"><i class="fas fa-comment-dots"></i> Activar Alertas</li>
-                <li id="logout-btn" class="logout-item"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</li>
-            </ul>
+            <div class="nav-tabs-container">
+                <ul class="nav-links">
+                    <li data-target="dashboard" class="active"><i class="fas fa-chart-line"></i> <span>Dashboard</span></li>
+                    <li data-target="reportes"><i class="fas fa-clipboard-list"></i> <span>Incidencias</span></li>
+                    <!-- <li data-target="lanzamientos"><i class="fas fa-rocket"></i> <span>Lanzamientos</span></li> -->
+                    <li data-target="materiales"><i class="fas fa-store"></i> <span>Tiendas</span></li>
+                    <li data-target="imeis"><i class="fas fa-barcode"></i> <span>Control IMEI</span></li>
+                    <li data-target="campana"><i class="fas fa-layer-group"></i> <span>Planograma</span></li>
+                    <li data-target="mensajes" style="position:relative;">
+                        <i class="fas fa-bell"></i> <span>Mensajes</span>
+                        <span id="msg-nav-badge" class="nav-badge">0</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="sidebar-actions">
+                <button type="button" id="install-app-btn" style="display: none;" class="nav-action-btn btn-install" title="Instalar App">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button type="button" id="enable-notif-btn" style="display: none;" class="nav-action-btn btn-notif" title="Activar Alertas">
+                    <i class="fas fa-comment-dots"></i>
+                </button>
+                <button type="button" id="logout-btn" class="nav-action-btn btn-logout" title="Cerrar Sesión">
+                    <i class="fas fa-sign-out-alt"></i> <span>Salir</span>
+                </button>
+            </div>
         </nav>
 
         <main class="content">
             <header class="top-bar">
                 <h2 id="view-title">Dashboard</h2>
-                <div class="user-info hidden" style="display:none !important;">
-                    <span id="user-name">Usuario</span>
-                    <span id="user-badge" class="badge">Estandar</span>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="user-info hidden" style="display:none !important;">
+                        <span id="user-name">Usuario</span>
+                        <span id="user-badge" class="badge">Estandar</span>
+                    </div>
                 </div>
             </header>
 
@@ -109,6 +240,65 @@
                 <div class="dashboard-hero-welcome">
                     <h1 id="welcome-msg">¡Hola, Usuario! ✨</h1>
                     <p><i class="fa fa-chart-line" style="color: var(--mi-orange);"></i> Panel de reportes y lanzamientos</p>
+                </div>
+
+                <!-- SECTION: TOP ACCIONES RÁPIDAS (2 COLUMNAS MINIMALISTAS NEUMÓRFICAS) -->
+                <div class="dash-quick-actions-grid">
+                    <!-- CARD 1: GESTIÓN DE DEVOLUCIONES (ADMIN) -->
+                    <div id="dash-admin-devoluciones-container" class="admin-only-feature" style="display: none;">
+                        <div id="btn-admin-devoluciones" class="dashboard-devoluciones-card" onclick="window.openDevolucionesModal()">
+                            <div class="dash-card-left">
+                                <div id="dash-devoluciones-icon-box" class="dash-icon-sculpted theme-amber">
+                                    <i class="fas fa-undo-alt"></i>
+                                </div>
+                                <div class="dash-card-meta">
+                                    <strong class="dash-card-title">Devoluciones (Admin)</strong>
+                                    <span id="dash-devoluciones-badge" class="dash-status-pill">0 Devoluciones</span>
+                                    <span id="dash-devoluciones-summary-text" style="display: none;"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="dash-card-actions">
+                                <button type="button" class="btn-quick-tactile btn-quick-excel" onclick="event.stopPropagation(); window.exportDevolucionesExcel()" title="Descargar informe Excel">
+                                    <i class="fas fa-file-excel"></i> <span>Excel</span>
+                                </button>
+                                <button type="button" class="btn-quick-tactile btn-quick-amber" title="Abrir módulo de devoluciones">
+                                    <span>Ver</span> <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2: CONTROL DE IMEIS PENDIENTES EN TIENDAS -->
+                    <div id="dash-imei-widget-container">
+                        <div class="dashboard-imei-card" onclick="window.openDashboardPendingImeisModal()">
+                            <div class="dash-card-left">
+                                <div class="dash-icon-sculpted theme-orange">
+                                    <i class="fas fa-barcode"></i>
+                                </div>
+                                <div class="dash-card-meta">
+                                    <strong class="dash-card-title">Control de IMEIs</strong>
+                                    <span id="dash-imei-status-badge" class="dash-status-pill">Pendientes</span>
+                                    <p id="dash-imei-summary-text" style="display: none;"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="dash-card-actions">
+                                <div class="dash-compact-metric">
+                                    <span class="metric-num" id="dash-imei-pending-count">0</span>
+                                    <span class="metric-tag">Faltantes</span>
+                                </div>
+                                <div class="dash-compact-separator"></div>
+                                <div class="dash-compact-metric">
+                                    <span class="metric-num theme-orange" id="dash-imei-pending-stores-count">0</span>
+                                    <span class="metric-tag">Tiendas</span>
+                                </div>
+                                <button type="button" class="btn-quick-tactile btn-quick-orange" title="Ver tiendas con IMEIs pendientes">
+                                    <span>Tiendas</span> <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SECTION 1: INCIDENCIAS GENERALES -->
@@ -423,6 +613,7 @@
                             <div id="device-l4" class="level-box hidden" data-level="4" style="margin-bottom: 2rem;">
                                 <span class="level-label">Motivo</span>
                                 <div class="bubble-group">
+                                    <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Cambio de terminal')">Cambio de terminal</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Dañado')">Dañado</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Incorrecto')">Incorrecto</button>
                                     <button class="bubble-btn reason" onclick="selectLevel('device', 4, 'Robado')">Robado</button>
@@ -608,53 +799,58 @@
                         </div>
                     </div>
 
-                <div style="border-top: 2px dashed #ddd; margin: 4rem 0;"></div>
+                <div class="dash-section-divider"></div>
 
-                <!-- HISTORIAL DE INCIDENCIAS -->
-                <div class="recent-table" style="margin-bottom: 3rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 20px;">
-                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 id="dashboard-table-title" style="margin: 0;"><i class="fa fa-history" style="color: var(--mi-orange); font-size: 1.2rem;"></i> Historial de Incidencias</h3>
-                        <div class="dash-history-filters" style="display: flex; gap: 8px; flex-wrap: nowrap; align-items: center;">
-                            <select id="dash-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                <!-- HISTORIAL DE REPORTES / INCIDENCIAS -->
+                <div class="recent-table" id="dashboard-recent-table-card">
+                    <div class="recent-table-header-row">
+                        <div class="dash-history-title-row">
+                            <h3 id="dashboard-table-title">
+                                <span class="dash-title-icon-box"><i class="fa fa-history"></i></span>
+                                Historial de Reportes
+                            </h3>
+                        </div>
+                        <div class="dash-history-filters">
+                            <select id="dash-filter-cuenta" class="capsule-select" onchange="filterDashboardTable()">
                                 <option value="all">Todas Cuentas</option>
                             </select>
-                            <input type="text" list="dash-filter-tienda-list" id="dash-filter-tienda" class="capsule-select" placeholder="Todas Tiendas" style="width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" oninput="filterDashboardTable()" onchange="filterDashboardTable()">
+                            <input type="text" list="dash-filter-tienda-list" id="dash-filter-tienda" class="capsule-select" placeholder="Todas Tiendas" oninput="filterDashboardTable()" onchange="filterDashboardTable()">
                             <datalist id="dash-filter-tienda-list"></datalist>
-                            <select id="dash-filter-tipo" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                            <select id="dash-filter-tipo" class="capsule-select" onchange="filterDashboardTable()">
                                 <option value="all">Todos Tipos</option>
                                 <option value="dispositivo">Dispositivo</option>
                                 <option value="mobiliario">Mobiliario</option>
                                 <option value="pantalla">Pantalla Digital</option>
                                 <option value="lona">Lona</option>
                             </select>
-                            <select id="dash-filter-usuario" class="capsule-select" style="display: none; width: auto !important; min-width: 140px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                            <select id="dash-filter-usuario" class="capsule-select" style="display: none;" onchange="filterDashboardTable()">
                                 <option value="all">Todos Usuarios</option>
                             </select>
-                            <select id="dash-filter-estado" class="capsule-select" style="width: auto !important; min-width: 120px; height: 36px; padding: 0 8px; font-size: 12px;" onchange="filterDashboardTable()">
+                            <select id="dash-filter-estado" class="capsule-select" onchange="filterDashboardTable()">
                                 <option value="all">Todos Estados</option>
                                 <option value="abierta">Abierta</option>
                                 <option value="gestionado">Gestionado</option>
                                 <option value="solucionado">Solucionado</option>
                             </select>
-                            <button onclick="clearDashboardFilters()" title="Limpiar Filtros" style="height: 36px; width: 36px; border-radius: 50%; border: 1px solid #e0e0e0; background: #fff; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.color='var(--mi-orange)'; this.style.borderColor='var(--mi-orange)';" onmouseout="this.style.color='#888'; this.style.borderColor='#e0e0e0';">
+                            <button type="button" class="btn-clear-filters" onclick="clearDashboardFilters()" title="Limpiar Filtros">
                                 <i class="fas fa-eraser"></i>
                             </button>
                         </div>
                     </div>
-                    <div style="overflow-x: auto;">
+                    <div class="recent-table-scroll-wrapper">
                         <table id="recent-reports-table">
                             <thead>
                                 <tr>
-                                    <th>Fecha</th>
-                                    <th id="th-usuario">Usuario</th>
-                                    <th>Cuenta</th>
-                                    <th>Tienda</th>
-                                    <th>Tipo</th>
-                                    <th style="cursor: pointer; user-select: none; white-space: nowrap;" onclick="sortDashboardByTime()">
+                                    <th class="th-fecha">Fecha</th>
+                                    <th id="th-usuario" class="th-usuario">Usuario</th>
+                                    <th class="th-cuenta">Cuenta</th>
+                                    <th class="th-tienda">Tienda</th>
+                                    <th class="th-tipo">Tipo</th>
+                                    <th class="th-tiempo" style="cursor: pointer; user-select: none; white-space: nowrap;" onclick="sortDashboardByTime()">
                                         Tiempo <i id="sort-tiempo-icon" class="fas fa-sort-numeric-down-alt" style="color: var(--mi-orange);"></i>
                                     </th>
-                                    <th>Estado</th>
-                                    <th style="text-align:center;">Acciones</th>
+                                    <th class="th-estado">Estado</th>
+                                    <th class="th-acciones" style="text-align:center;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -788,7 +984,7 @@
                                 <button type="button" class="btn-secondary" onclick="closeLaunchChecklist()" style="padding: 8px 16px; border-radius: 20px; font-weight: bold; width: auto; font-size: 13px; border: none; background: #f0f0f0; color: #333; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;"><i class="fas fa-arrow-left"></i> Volver</button>
                                 Checklist de Tareas
                             </h3>
-                            <a href="https://docs.google.com/presentation/d/1_cJVZKnAMqO_KV53hwsHWHojR7qZzVQA/edit?usp=drive_link&ouid=115671157525332985831&rtpof=true&sd=true" target="_blank" style="padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 13px; text-decoration: none; display: flex; align-items: center; gap: 8px; background: #fff4e6; color: var(--mi-orange); border: 1px solid #fce8db; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><i class="fas fa-file-powerpoint"></i> Guía Lanzamiento Xiaomi 17T Series</a>
+                            <a href="https://docs.google.com/presentation/d/1_cJVZKnAMqO_KV53hwsHWHojR7qZzVQA/edit?usp=drive_link&ouid=115671157525332985831&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" style="padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 13px; text-decoration: none; display: flex; align-items: center; gap: 8px; background: #fff4e6; color: var(--mi-orange); border: 1px solid #fce8db; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><i class="fas fa-file-powerpoint"></i> Guía Lanzamiento Xiaomi 17T Series</a>
                         </div>
                         <h4 id="launch-checklist-store-title" style="margin-bottom: 1rem; color: var(--primary);"></h4>
                         <form id="launch-form" onsubmit="submitLaunch(event)">
@@ -941,6 +1137,89 @@
                     <h2 style="margin-bottom: 20px; color: #333;"><i class="fas fa-store" style="color: var(--mi-orange);"></i> Tiendas Disponibles</h2>
                     <p style="color: #666; margin-bottom: 30px;">Consulta el listado de tiendas asignadas y utiliza los filtros para buscar.</p>
 
+                    <!-- SUMATORIO DE TIENDAS POR MOBILIARIO (SOLO ADMINISTRADOR) -->
+                    <div id="admin-stores-furniture-summary" class="admin-furniture-card" style="display: none;">
+                        <div class="admin-furn-header">
+                            <div class="admin-furn-title-group">
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <h3 class="admin-furn-title">
+                                        <i class="fas fa-layer-group" style="color: var(--mi-orange);"></i> Sumatorio de Tiendas por Mobiliario
+                                    </h3>
+                                    <span class="admin-furn-badge-role">
+                                        <i class="fas fa-shield-alt"></i> Solo Administrador
+                                    </span>
+                                </div>
+                                <p class="admin-furn-subtitle">
+                                    Resumen cuantitativo de implantación según mobiliario (Mesas, Columnas, Walls y Cabeceras ECI) con filtros interactivos.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- BARRA DE FILTROS: CUENTA Y ZONA -->
+                        <div class="admin-furn-filter-bar">
+                            <div class="admin-furn-filter-field">
+                                <label for="admin-furn-filter-cuenta"><i class="fas fa-briefcase"></i> Cuenta / Retail:</label>
+                                <select id="admin-furn-filter-cuenta" class="admin-furn-select" onchange="window.updateAdminFurnitureSummary()">
+                                    <option value="all">Todas las Cuentas</option>
+                                </select>
+                            </div>
+
+                            <div class="admin-furn-filter-field">
+                                <label for="admin-furn-filter-zona"><i class="fas fa-map-marker-alt"></i> Zona / Región:</label>
+                                <select id="admin-furn-filter-zona" class="admin-furn-select" onchange="window.updateAdminFurnitureSummary()">
+                                    <option value="all">Todas las Zonas</option>
+                                </select>
+                            </div>
+
+                            <div class="admin-furn-filter-actions">
+                                <button type="button" class="admin-furn-btn admin-furn-btn-reset" onclick="window.resetAdminFurnitureFilters()" title="Restablecer filtros a Todas las Cuentas y Zonas">
+                                    <i class="fas fa-undo"></i> Limpiar Filtros
+                                </button>
+                                <button type="button" class="admin-furn-btn admin-furn-btn-sync" onclick="window.syncAdminFurnitureToStoreGrid()" title="Aplicar los filtros seleccionados al listado de tiendas de abajo">
+                                    <i class="fas fa-arrow-down"></i> Ver Tiendas Abajo
+                                </button>
+                            </div>
+
+                            <div id="admin-furn-count-badge" class="admin-furn-count-badge">
+                                <i class="fas fa-store"></i> Mostrando <b>247</b> de <b>247</b> tiendas
+                            </div>
+                        </div>
+
+                        <!-- KPI STATS CARDS -->
+                        <div id="admin-furn-kpi-grid" class="admin-furn-kpi-grid">
+                            <!-- Inyectado dinámicamente -->
+                        </div>
+
+                        <!-- TABLA DETALLADA DE MOBILIARIO -->
+                        <div class="admin-furn-table-container">
+                            <table class="admin-furn-table">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width: 190px;">Tipo de Mobiliario</th>
+                                        <th style="text-align: center; min-width: 130px;">Tiendas con Mueble</th>
+                                        <th style="text-align: center; min-width: 110px;">% Implantación</th>
+                                        <th style="text-align: center; min-width: 130px;">Unidades Totales</th>
+                                        <th style="min-width: 250px;">Desglose de Implantación</th>
+                                        <th style="text-align: center; min-width: 110px;">Promedio / Tienda</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-furn-table-body">
+                                    <!-- Inyectado dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- MIX DE MOBILIARIO COMBINADO -->
+                        <div class="admin-furn-mix-section">
+                            <h4 class="admin-furn-mix-title">
+                                <i class="fas fa-boxes" style="color: var(--mi-orange);"></i> Mix de Equipamiento por Tienda
+                            </h4>
+                            <div id="admin-furn-mix-grid" class="admin-furn-mix-grid">
+                                <!-- Inyectado dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; margin-bottom: 2rem; background: #fff; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #f0f0f0;">
                         <select id="tiendas-filter-cuenta" class="capsule-select" style="width: auto !important; min-width: 150px; height: 38px; padding: 0 12px; font-size: 13px; border-radius: 20px; border: 1px solid #e0e0e0; display: inline-block; background-color: #fff; cursor: pointer;">
                             <option value="all">Todas las Cuentas</option>
@@ -958,6 +1237,233 @@
                     <!-- GRID DE TIENDAS -->
                     <div id="tiendas-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; text-align: left;">
                         <!-- Las tiendas se inyectarán aquí vía JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Control IMEI por Tienda y Mesas -->
+            <section id="view-imeis" class="sub-view hidden">
+                <div style="padding: 10px 0 30px;">
+                    <!-- Cabecera de la vista -->
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.4rem; color: #111; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-barcode" style="color: var(--mi-orange);"></i> Control de IMEIs por Tienda
+                            </h2>
+                            <p style="margin: 5px 0 0; color: #666; font-size: 13px;">Gestión de terminales LDU y Dummies organizados por mesas con sincronización directa.</p>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button type="button" class="btn-secondary" onclick="window.openDevolucionesModal()" style="background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" title="Ver tabla de terminales devueltos en la pestaña DEVOLUCIONES de Google Sheets">
+                                <i class="fas fa-boxes" style="color: #0284c7;"></i> Ver Devoluciones
+                            </button>
+                            <button type="button" class="btn-secondary" id="btn-feishu-config" onclick="window.triggerBackgroundImeiSync(event)" style="background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; font-weight: 600; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;" title="Sincronizar directamente en segundo plano con Google Sheets (Mayús+Clic para re-volcado completo)">
+                                <i class="fas fa-sync-alt" style="color: #16a34a;"></i> Sincronizar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de filtros -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 1.5rem; background: #fff; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #f0f0f0;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 160px; flex: 1;">
+                            <label style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">Cuenta</label>
+                            <select id="imei-filter-cuenta" class="capsule-select" style="height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; border: 1px solid #e0e0e0; width: 100%;" onchange="window.onImeiCuentaChange(this.value)">
+                                <option value="all">Todas las Cuentas</option>
+                            </select>
+                        </div>
+                        <div id="imei-filter-usuario-container" style="display: none; flex-direction: column; gap: 4px; min-width: 160px; flex: 1;">
+                            <label style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">GPV / Gestor</label>
+                            <select id="imei-filter-usuario" class="capsule-select" style="height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; border: 1px solid #e0e0e0; width: 100%;" onchange="window.onImeiUsuarioChange(this.value)">
+                                <option value="all">Todos los GPVs</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 280px; flex: 2; position: relative;">
+                            <label style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fas fa-search" style="color: var(--mi-orange);"></i> Buscar Tienda / Centro</span>
+                                <span id="imei-stores-count-badge" style="color: var(--mi-orange); font-weight: 600; text-transform: none; font-size: 11px;"></span>
+                            </label>
+                            <div style="display: flex; gap: 6px; align-items: center; position: relative;">
+                                <div style="position: relative; flex: 1;">
+                                    <input type="text" 
+                                        id="imei-filter-tienda-input" 
+                                        list="imei-filter-tienda-datalist" 
+                                        class="capsule-select" 
+                                        placeholder="Escribe para buscar tienda o RMS..." 
+                                        autocomplete="off" 
+                                        style="height: 38px; padding: 0 32px 0 12px; font-size: 13px; border-radius: 8px; border: 1px solid #e0e0e0; width: 100%; background: white; font-weight: 500;" 
+                                        oninput="window.onImeiStoreInputSearch(this.value)" 
+                                        onchange="window.onImeiStoreInputSelected(this.value)">
+                                    <i id="btn-clear-imei-store" class="fas fa-times" onclick="window.clearImeiStoreSearch()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #aaa; cursor: pointer; display: none; padding: 4px;" title="Borrar búsqueda"></i>
+                                </div>
+                                <datalist id="imei-filter-tienda-datalist"></datalist>
+                                <button type="button" class="btn-secondary" onclick="window.openStoreSelectionModal('imei')" style="height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid #d9d9d9; background: #fafafa; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap;" title="Abrir selector modal con buscador">
+                                    <i class="fas fa-list"></i> Lista
+                                </button>
+                                <select id="imei-filter-tienda" style="display: none;" onchange="window.onImeiTiendaChange(this.value)">
+                                    <option value="">-- Selecciona una Tienda / Centro --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 150px; flex: 1;">
+                            <label style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">Filtro Tipología</label>
+                            <select id="imei-filter-tipologia" class="capsule-select" style="height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; border: 1px solid #e0e0e0; width: 100%;" onchange="window.renderStoreImeis()">
+                                <option value="all">Todos (LDUs y Dummies)</option>
+                                <option value="LDU">Solo LDUs</option>
+                                <option value="DUMMY">Solo Dummies</option>
+                                <option value="sin_imei">LDUs Sin IMEI (Pendientes)</option>
+                                <option value="con_imei">LDUs Con IMEI</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 180px; flex: 1;">
+                            <label style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">Búsqueda Rápida</label>
+                            <input type="text" id="imei-filter-search" placeholder="Buscar modelo o IMEI..." style="height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; border: 1px solid #e0e0e0; width: 100%;" oninput="window.renderStoreImeis()">
+                        </div>
+                        <div style="align-self: flex-end;">
+                            <button onclick="window.clearImeiFilters()" title="Limpiar Filtros" style="height: 38px; width: 38px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                                <i class="fas fa-eraser"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de métricas de la tienda seleccionada -->
+                    <div id="imei-store-metrics-bar" style="display: none; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 1.5rem;">
+                        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #f0f0f0; border-left: 4px solid var(--mi-orange); box-shadow: var(--shadow-sm);">
+                            <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600;">Mesas</small>
+                            <div id="metric-imei-mesas" style="font-size: 1.5rem; font-weight: 700; color: #111;">0</div>
+                        </div>
+                        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #f0f0f0; border-left: 4px solid #1890ff; box-shadow: var(--shadow-sm);">
+                            <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600;">Total LDUs</small>
+                            <div id="metric-imei-total-ldus" style="font-size: 1.5rem; font-weight: 700; color: #1890ff;">0</div>
+                        </div>
+                        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #f0f0f0; border-left: 4px solid #52c41a; box-shadow: var(--shadow-sm);">
+                            <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600;">LDUs con IMEI</small>
+                            <div id="metric-imei-ok-ldus" style="font-size: 1.5rem; font-weight: 700; color: #52c41a;">0</div>
+                        </div>
+                        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #f0f0f0; border-left: 4px solid #ff4d4f; box-shadow: var(--shadow-sm);">
+                            <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600;">LDUs Vacíos (Pendientes)</small>
+                            <div id="metric-imei-pending-ldus" style="font-size: 1.5rem; font-weight: 700; color: #ff4d4f;">0</div>
+                        </div>
+                        <div style="background: white; padding: 12px 16px; border-radius: 10px; border: 1px solid #f0f0f0; border-left: 4px solid #722ed1; box-shadow: var(--shadow-sm);">
+                            <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600;">Dummies (Sin IMEI)</small>
+                            <div id="metric-imei-dummies" style="font-size: 1.5rem; font-weight: 700; color: #722ed1;">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Contenedor Principal de Mesas -->
+                    <div id="imei-tables-container">
+                        <!-- Inyectado por JS: mesas o estado vacío -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Planograma de Campaña y Mesas -->
+            <section id="view-campana" class="sub-view hidden">
+                <div style="padding: 10px 0 30px;">
+                    <!-- Cabecera -->
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 1.5rem;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <h2 style="margin: 0; font-size: 1.4rem; color: #111; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-layer-group" style="color: var(--mi-orange);"></i> Planograma Oficial • Guía Lanzamiento Xiaomi 18 Series
+                                </h2>
+                                <span style="background: linear-gradient(135deg, #ff6900 0%, #ea580c 100%); color: white; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(255,103,0,0.25);">
+                                    D-Day: 17 Nov (14:00h)
+                                </span>
+                            </div>
+                            <p style="margin: 5px 0 0; color: #666; font-size: 13px;">Distribución 3D interactiva de Mesas (Clusters 1, 2 y 3), Wall, Columna, Casos Especiales, Cabecera ECI y Lineales de Wearables.</p>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: TOTALES DE PRODUCTOS (EXCLUSIVO JOAQUÍN LEMUS) -->
+                    <div id="planogram-joaquin-totals-container" style="display: none; margin-bottom: 1.5rem;">
+                        <!-- Inyectado dinámicamente por JS con navegación en árbol ramificada -->
+                    </div>
+
+                    <!-- Barra de Filtros Interactivos: Cuenta, Tienda y Cluster -->
+                    <div style="background: #fff; padding: 1.1rem 1.4rem; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                        <div style="flex: 1 1 180px;">
+                            <label style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block;">
+                                <i class="fas fa-building"></i> Filtrar Cuenta:
+                            </label>
+                            <select id="planogram-filter-account" class="capsule-select" style="width: 100%; height: 38px; border-radius: 8px; font-size: 13px;" onchange="window.onPlanogramAccountChange(this.value)">
+                                <option value="all">Todas las Cuentas</option>
+                            </select>
+                        </div>
+                        <div style="flex: 2 1 280px; position: relative;">
+                            <label style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fas fa-store"></i> Buscar Tienda (Auto-detecta Mesas, Wall, Columna o Especial):</span>
+                            </label>
+                            <div style="position: relative; display: flex; gap: 6px; align-items: center;">
+                                <div style="position: relative; flex: 1;">
+                                    <input type="text" id="planogram-search-store" class="form-control" placeholder="Escribe tienda o RMS (ej. Castellana, SSRR, Adeje...)" list="planogram-stores-datalist" style="width: 100%; height: 38px; padding-left: 34px; padding-right: 30px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 13px;" oninput="window.onPlanogramStoreSearch(this.value)" onchange="window.onPlanogramStoreSearch(this.value)">
+                                    <i class="fas fa-search" style="position: absolute; left: 12px; top: 12px; color: #94a3b8; font-size: 13px;"></i>
+                                    <i id="btn-clear-planogram-store" class="fas fa-times" onclick="window.clearPlanogramStoreSelection()" style="position: absolute; right: 10px; top: 11px; color: #94a3b8; cursor: pointer; display: none; padding: 2px;" title="Quitar filtro de tienda"></i>
+                                </div>
+                            </div>
+                            <datalist id="planogram-stores-datalist"></datalist>
+                        </div>
+                        <div style="flex: 1 1 230px;">
+                            <label style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block;">
+                                <i class="fas fa-layer-group"></i> Sección / Mobiliario Guía X18:
+                            </label>
+                            <select id="planogram-filter-cluster" class="capsule-select" style="width: 100%; height: 38px; border-radius: 8px; font-size: 13px;" onchange="window.switchClusterTab(this.value)">
+                                <option value="" selected>Seleccionar Planograma / Mobiliario...</option>
+                                <option value="1">04. Cluster 1 Mesa | ECI y MM</option>
+                                <option value="2">05-06. Cluster 2 Mesas | ECI y MM (Pad 8 / Pad 8 Pro)</option>
+                                <option value="3">07. Cluster 3 Mesas | ECI y MM (Sin/Con Pad Pro)</option>
+                                <option value="wall_col">08. Wall y Columna | ECI y MM</option>
+                                <option value="especiales">09. Casos Especiales (MM Adeje 4.0, ECI Castellana, MM SSRR)</option>
+                                <option value="wearables">10. Lineal Wearables (MM 9/8/7/6 Pos. y ECI 6 Pos.)</option>
+                                <option value="cabecera_posm">01-03 & 11. Cabecera ECI (17 Tiendas), POSM y Devoluciones</option>
+                                <option value="hojaruta">📊 Planograma Transpuesto (Hoja de Ruta)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pestañas de Cluster y Secciones Guía X18 -->
+                    <div style="display: flex; gap: 6px; border-bottom: 2px solid #eee; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 2px; flex-wrap: wrap;">
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-cluster1" onclick="window.switchClusterTab(1)" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-table"></i> 1 Mesa <span id="count-badge-cluster1" style="background: #f0f0f0; color: #666; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">0</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-cluster2" onclick="window.switchClusterTab(2)" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-table"></i> 2 Mesas <span id="count-badge-cluster2" style="background: #f0f0f0; color: #666; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">0</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-cluster3" onclick="window.switchClusterTab(3)" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-table"></i> 3 Mesas <span id="count-badge-cluster3" style="background: #f0f0f0; color: #666; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">0</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-alcampo" onclick="window.switchClusterTab('alcampo')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-shopping-basket" style="color: #dc2626;"></i> Alcampo <span id="count-badge-alcampo" style="background: #fee2e2; color: #b91c1c; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">9 Tiendas</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-carrefour" onclick="window.switchClusterTab('carrefour')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-store" style="color: #2563eb;"></i> Carrefour <span id="count-badge-carrefour" style="background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">62 Tiendas</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-carrefour_premium" onclick="window.switchClusterTab('carrefour_premium')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-gem" style="color: #ea580c;"></i> Carrefour Premium <span style="background: #ffedd5; color: #c2410c; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">Cabecera 3D</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-wall_col" onclick="window.switchClusterTab('wall_col')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-columns"></i> Wall y Columna <span id="count-badge-wallcol" style="background: #e0f2fe; color: #0369a1; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">Wall/Col</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-especiales" onclick="window.switchClusterTab('especiales')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-star" style="color: #f59e0b;"></i> Casos Especiales <span style="background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 20px; font-size: 10.5px;">3 Tiendas</span>
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-wearables" onclick="window.switchClusterTab('wearables')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="far fa-clock"></i> Lineal Wearables
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-cabecera_posm" onclick="window.switchClusterTab('cabecera_posm')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #666; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fas fa-lightbulb"></i> Cabecera ECI & POSM
+                        </button>
+                        <button type="button" class="cluster-tab-btn" id="tab-btn-hojaruta" onclick="window.switchClusterTab('hojaruta')" style="padding: 9px 14px; font-size: 13px; font-weight: 700; border: none; background: transparent; border-bottom: 3px solid transparent; color: #217346; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-left: auto; white-space: nowrap;">
+                            <i class="fas fa-file-invoice"></i> Transpuesto
+                        </button>
+                    </div>
+
+                    <!-- Contenedor del Diagrama Visual Físico de Mesas (Oficial Xiaomi) -->
+                    <div id="visual-planogram-diagram-container" style="display: block; margin-bottom: 2rem;">
+                        <!-- Inyectado dinámicamente por JS según el cluster activo -->
+                    </div>
+
+                    <!-- Contenedor de la Vista Transpuesta "Planograma Transpuesto" -->
+                    <div id="hoja-ruta-view-container" style="display: none;">
+                        <!-- Tabla transpuesta inyectada por JS -->
                     </div>
                 </div>
             </section>
@@ -980,6 +1486,14 @@
             <div class="mobile-bottom-nav-item" data-target="materiales">
                 <i class="fas fa-store"></i>
                 <span>Tiendas</span>
+            </div>
+            <div class="mobile-bottom-nav-item" data-target="imeis">
+                <i class="fas fa-barcode"></i>
+                <span>IMEIs</span>
+            </div>
+            <div class="mobile-bottom-nav-item" data-target="campana">
+                <i class="fas fa-layer-group"></i>
+                <span>Planograma</span>
             </div>
             <div class="mobile-bottom-nav-item" data-target="mensajes" style="position: relative;">
                 <i class="fas fa-bell"></i>
@@ -1353,11 +1867,307 @@
         </div>
     </div>
 
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
+    <!-- Modal Pop-up para Acción / Incidencia de Terminal (Cambio de modelo, Rotura, Robo y Devolución) -->
+    <div id="imei-action-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 10035; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="modal-content" style="background: #ffffff; padding: 2rem; border-radius: 18px; max-width: 560px; width: 92%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; animation: slideIn 0.3s ease; border-left: 6px solid var(--mi-orange);">
+            <div class="bottom-sheet-drag-handle"></div>
+            <span class="close-modal" onclick="window.closeImeiActionModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.6rem; cursor: pointer; color: var(--mi-gray-dark);">&times;</span>
+            
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,103,0,0.12); color: var(--mi-orange); display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.3rem; color: #111;">Reporte de Terminal y Devolución</h3>
+                    <small style="color: #666;">Actualiza <strong>LDUS DUMMY STOCK</strong> y registra en <strong>DEVOLUCIONES</strong> de Google Sheets</small>
+                </div>
+            </div>
+
+            <!-- Selector opcional de terminal si se abrió desde cabecera sin clic en fila -->
+            <div id="modal-action-device-picker-group" style="display: none; background: #fffbe6; border: 1px solid #ffe58f; padding: 12px; border-radius: 10px; margin-bottom: 1.2rem;">
+                <label style="font-weight: 700; font-size: 12px; color: #d46b08; display: block; margin-bottom: 6px;">
+                    <i class="fas fa-list-ol"></i> Selecciona la Mesa / Puesto que vas a cambiar:
+                </label>
+                <select id="modal-action-device-picker" class="form-control" style="width: 100%; height: 38px; border-radius: 8px; border: 1px solid #d9d9d9; font-size: 13px;" onchange="window.onActionDevicePickerChanged(this.value)">
+                    <option value="">-- Elige qué terminal de la tienda se sustituye --</option>
+                </select>
+            </div>
+
+            <!-- Resumen del Dispositivo Retirado (Devolución) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 10px; margin-bottom: 1.25rem; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div><strong>Ubicación:</strong> <span id="modal-action-location" style="color: #334155; font-weight: 600;">-</span></div>
+                    <span id="modal-action-tipologia-badge" class="imei-tag-ldu">LDU</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">Dispositivo a Retirar (Devolución):</strong><br>
+                    <span id="modal-action-current-model" style="color: #0f172a; font-weight: 700; font-size: 14px;">-</span>
+                    <span id="modal-action-current-code" style="color: #888; font-family: monospace; font-size: 11px; margin-left: 6px;"></span>
+                </div>
+                <div style="margin-top: 8px;">
+                    <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
+                        IMEI del terminal a retirar / devolver:
+                    </label>
+                    <input type="text" id="modal-action-retired-imei" class="form-control" placeholder="Introduce o confirma IMEI retirado (15 dígitos)..." maxlength="25" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 13px; padding: 0 10px; background: white;">
+                    <small style="color: #64748b; font-size: 11px; margin-top: 3px; display: block;">
+                        <i class="fas fa-info-circle" style="color: #0284c7;"></i> Se registrará como IMEI devuelto en la pestaña <strong>DEVOLUCIONES</strong>.
+                    </small>
+                </div>
+            </div>
+
+            <form id="imei-action-form" onsubmit="window.submitImeiAction(event)">
+                <input type="hidden" id="modal-action-store-name">
+                <input type="hidden" id="modal-action-device-id">
+
+                <!-- Selección de Motivo / Tipo de Acción -->
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label style="font-weight: 700; font-size: 13px; color: #333; display: block; margin-bottom: 8px;">
+                        Motivo / Tipo de Acción <span style="color: red;">*</span>
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 10px;">
+                        <label class="action-type-card active" id="card-action-cambio" onclick="window.selectActionType('cambio')" style="cursor: pointer; border: 2px solid var(--mi-orange); background: #fff9f5; border-radius: 10px; padding: 12px 8px; text-align: center; transition: all 0.2s;">
+                            <input type="radio" name="modal_action_type" value="cambio" checked style="display: none;">
+                            <i class="fas fa-sync-alt" style="color: var(--mi-orange); font-size: 18px; margin-bottom: 6px; display: block;"></i>
+                            <strong style="font-size: 12px; color: #111; display: block;">Cambio Modelo</strong>
+                            <small style="font-size: 10px; color: #777;">Sustitución en mesa</small>
+                        </label>
+                        <label class="action-type-card" id="card-action-devolucion" onclick="window.selectActionType('devolucion')" style="cursor: pointer; border: 2px solid #e0e0e0; background: #fff; border-radius: 10px; padding: 12px 8px; text-align: center; transition: all 0.2s;">
+                            <input type="radio" name="modal_action_type" value="devolucion" style="display: none;">
+                            <i class="fas fa-undo-alt" style="color: #d97706; font-size: 18px; margin-bottom: 6px; display: block;"></i>
+                            <strong style="font-size: 12px; color: #111; display: block;">Devolución</strong>
+                            <small style="font-size: 10px; color: #777;">Retirada a Devoluciones</small>
+                        </label>
+                        <label class="action-type-card" id="card-action-rotura" onclick="window.selectActionType('rotura')" style="cursor: pointer; border: 2px solid #e0e0e0; background: #fff; border-radius: 10px; padding: 12px 8px; text-align: center; transition: all 0.2s;">
+                            <input type="radio" name="modal_action_type" value="rotura" style="display: none;">
+                            <i class="fas fa-heart-broken" style="color: #fa8c16; font-size: 18px; margin-bottom: 6px; display: block;"></i>
+                            <strong style="font-size: 12px; color: #111; display: block;">Rotura / Dañado</strong>
+                            <small style="font-size: 10px; color: #777;">Sustituir averiado</small>
+                        </label>
+                        <label class="action-type-card" id="card-action-robo" onclick="window.selectActionType('robo')" style="cursor: pointer; border: 2px solid #e0e0e0; background: #fff; border-radius: 10px; padding: 12px 8px; text-align: center; transition: all 0.2s;">
+                            <input type="radio" name="modal_action_type" value="robo" style="display: none;">
+                            <i class="fas fa-exclamation-triangle" style="color: #f5222d; font-size: 18px; margin-bottom: 6px; display: block;"></i>
+                            <strong style="font-size: 12px; color: #111; display: block;">Robo / Pérdida</strong>
+                            <small style="font-size: 10px; color: #777;">Sustitución en mesa</small>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Campo para Nuevo Modelo de Sustitución -->
+                <div id="group-new-model" class="form-group" style="margin-bottom: 1.2rem; background: #fbfbfc; border: 1px dashed #ffd591; padding: 14px; border-radius: 10px;">
+                    <label style="font-weight: 700; font-size: 13px; color: var(--mi-orange); display: block; margin-bottom: 6px;">
+                        <i class="fas fa-mobile-alt"></i> Nuevo Modelo de Sustitución (Entra en Mesa) <span style="color: red;">*</span>
+                    </label>
+                    <select id="modal-action-new-model" class="form-control" style="width: 100%; height: 40px; border-radius: 8px; border: 1px solid #d9d9d9; font-size: 13px; font-weight: 600; padding: 0 10px; background: white;" onchange="window.onNewModelSelected(this.value)">
+                        <!-- Inyectado dinámicamente por JS -->
+                    </select>
+                    <input type="text" id="modal-action-new-model-custom" class="form-control" placeholder="Escribe el nombre del nuevo modelo..." style="display: none; width: 100%; height: 38px; border-radius: 8px; border: 1px solid #ffd591; margin-top: 8px; padding: 0 10px; font-size: 13px;">
+                    <small id="modal-action-new-sku-preview" style="color: #888; font-family: monospace; font-size: 11px; margin-top: 4px; display: block;"></small>
+                </div>
+
+                <!-- Campo para Nuevo IMEI del Terminal -->
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="font-weight: 700; font-size: 13px; color: #333; display: block; margin-bottom: 6px;">
+                        Nuevo IMEI del Terminal (Entra en Mesa) <span id="modal-action-imei-req-star" style="color: red;">*</span>
+                    </label>
+                    <input type="text" id="modal-action-new-imei" class="form-control" placeholder="Introduce nuevo IMEI (15 dígitos)..." maxlength="25" style="width: 100%; height: 42px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; font-family: monospace; padding: 0 12px; letter-spacing: 0.5px;">
+                    <small style="color: #888; font-size: 11px; margin-top: 4px; display: block;">
+                        Este nuevo IMEI y modelo reemplazarán al anterior en la pestaña <strong>LDUS DUMMY STOCK</strong> de Google Sheets.
+                    </small>
+                </div>
+
+                <!-- Detalle / Observaciones -->
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label style="font-weight: 600; font-size: 13px; color: #555; display: block; margin-bottom: 6px;">
+                        Detalle / Observaciones del Cambio (Opcional):
+                    </label>
+                    <textarea id="modal-action-observaciones" class="form-control" rows="2" placeholder="Motivo concreto, albarán de entrega, parte de incidencia o notas..." style="width: 100%; border-radius: 8px; border: 1px solid #ccc; font-size: 13px; padding: 8px 10px; resize: none;"></textarea>
+                </div>
+
+                <!-- Banner Informativo de Sincronización en Google Sheets -->
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; margin-bottom: 1.3rem; font-size: 12px; color: #166534; display: flex; gap: 8px; align-items: flex-start;">
+                    <i class="fas fa-check-circle" style="color: #22c55e; margin-top: 2px; font-size: 14px;"></i>
+                    <div style="line-height: 1.4;">
+                        <strong>Sincronización en la nube:</strong><br>
+                        • <strong>DEVOLUCIONES:</strong> Se creará una nueva fila con el terminal retirado e IMEI.<br>
+                        • <strong>LDUS DUMMY STOCK:</strong> Se actualizará el puesto de la mesa con el nuevo modelo e IMEI.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn-secondary" onclick="window.closeImeiActionModal()" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 13px;">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="padding: 10px 22px; border-radius: 8px; background: var(--mi-orange); color: white; border: none; font-weight: 700; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-check-circle"></i> Guardar y Rellenar en Google Sheets
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Listado de Devoluciones en Google Sheets -->
+    <div id="modal-devoluciones-list" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 10020; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="modal-content" style="background: #ffffff; padding: 1.8rem; border-radius: 18px; max-width: 950px; width: 95%; max-height: 90vh; overflow-y: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; animation: slideIn 0.3s ease; border-left: 6px solid #0284c7;">
+            <span class="close-modal" onclick="window.closeDevolucionesModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.6rem; cursor: pointer; color: var(--mi-gray-dark);">&times;</span>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 1rem; padding-right: 2rem;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 42px; height: 42px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.25rem; color: #111;">Registro de Terminales Devueltos</h3>
+                        <small style="color: #666;">Datos sincronizados en vivo con la pestaña <strong>DEVOLUCIONES</strong> de Google Sheets</small>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn-primary" onclick="window.exportDevolucionesExcel()" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: #217346; color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 2px 6px rgba(33, 115, 70, 0.25);">
+                        <i class="fas fa-file-excel"></i> Descargar Excel (.xlsx)
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="window.loadDevolucionesData()" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: 1px solid #d1d5db; background: white; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                    <a href="https://docs.google.com/spreadsheets/d/1Xht-QU2wRpWNBgT0dqyJkfM9SHD610mhO9y-W3lzonM/edit#gid=473234364" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;">
+                        <i class="fas fa-external-link-alt"></i> Abrir Google Sheets
+                    </a>
+                </div>
+            </div>
+
+            <!-- Buscador rápido -->
+            <div style="margin-bottom: 1rem; position: relative;">
+                <input type="text" id="devoluciones-search-input" placeholder="Buscar por tienda, modelo retirado, IMEI o usuario..." oninput="window.filterDevolucionesTable(this.value)" style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px;">
+                <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af;"></i>
+            </div>
+
+            <!-- Contenedor con tabla de devoluciones -->
+            <div id="devoluciones-table-container" style="flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
+                <div style="text-align: center; padding: 3rem 1rem; color: #6b7280;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #0284c7; margin-bottom: 10px; display: block;"></i>
+                    Cargando devoluciones desde Google Sheets...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pop-up: Notificación de Actualización de Aplicación -->
+    <div id="app-update-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 10050; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="modal-content" style="background: #ffffff; padding: 2.2rem 2rem; border-radius: 20px; max-width: 440px; width: 90%; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.25); position: relative; animation: slideIn 0.3s ease; border-top: 6px solid var(--mi-orange);">
+            <div style="width: 64px; height: 64px; background: rgba(255, 103, 0, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+                <i class="fas fa-sync-alt fa-spin" style="font-size: 28px; color: var(--mi-orange); animation-duration: 4s;"></i>
+            </div>
+            <h3 style="margin: 0 0 8px; font-size: 1.3rem; color: #111; font-weight: 700;">¡Nueva Actualización Disponible!</h3>
+            <p style="margin: 0 0 1.5rem; color: #666; font-size: 13px; line-height: 1.5;">
+                Se ha publicado una nueva versión con mejoras y optimizaciones. Pulsa a continuación para aplicar los últimos cambios.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" class="btn-primary" onclick="window.confirmAppUpdate()" style="background: var(--mi-orange); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-check"></i> Actualizar Ahora
+                </button>
+                <button type="button" class="btn-secondary" onclick="window.dismissUpdateModal()" style="background: #f5f5f5; color: #666; border: 1px solid #ddd; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;">
+                    Más tarde
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Gestión de Réplica en Google Sheets (LDUS DUMMY STOCK) -->
+    <div id="modal-feishu-config" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 10030; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="modal-content" style="background: #ffffff; padding: 1.8rem; border-radius: 18px; max-width: 580px; width: 92%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; animation: slideIn 0.3s ease; border-top: 6px solid #22c55e;">
+            <span class="close-modal" onclick="window.closeGoogleSheetsSyncModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.6rem; cursor: pointer; color: #888;">&times;</span>
+            
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: #f0fdf4; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">
+                    <i class="fas fa-file-excel"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; color: #111;">Réplica en Google Sheets: LDUS DUMMY STOCK</h3>
+                    <p style="margin: 2px 0 0; color: #666; font-size: 12px;">Base de datos en la nube sin restricciones de permisos</p>
+                </div>
+            </div>
+
+            <!-- Enlace a Google Sheets -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="font-size: 12.5px; color: #334155;">
+                    <i class="fas fa-link" style="color: #2563eb; margin-right: 6px;"></i> Hoja de Google vinculada a la App
+                </div>
+                <a href="https://docs.google.com/spreadsheets/d/1Xht-QU2wRpWNBgT0dqyJkfM9SHD610mhO9y-W3lzonM/edit?pli=1&gid=473234364#gid=473234364" target="_blank" rel="noopener noreferrer" style="background: #2563eb; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                    <i class="fas fa-external-link-alt"></i> Abrir Hoja en Google
+                </a>
+            </div>
+
+            <!-- Estado de la pestaña -->
+            <div id="sheets-sync-status-box" style="background: #fafafa; border: 1px solid #f0f0f0; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; margin-bottom: 1rem;">
+                <i class="fas fa-spinner fa-spin"></i> Consultando estado...
+            </div>
+
+            <!-- Resultado de carga -->
+            <div id="sheets-populate-result" style="display: none; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; margin-bottom: 1rem; line-height: 1.4;"></div>
+
+            <!-- Opciones de carga inicial -->
+            <div style="background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 12px; margin-bottom: 1.2rem; font-size: 11.5px; color: #7c4a03; line-height: 1.5;">
+                <strong><i class="fas fa-info-circle" style="color: #faad14;"></i> ¿Cómo funciona la réplica en Google Sheets?</strong>
+                <p style="margin: 4px 0 0;">
+                    La aplicación lee y actualiza la pestaña <strong>LDUS DUMMY STOCK</strong> de tu hoja de Google Sheets. Cada vez que tú o un GPV modifique un IMEI, se actualiza directamente la celda de la fila correspondiente.
+                </p>
+                <p style="margin: 6px 0 0;">
+                    Si aún no has creado la pestaña en Google Sheets, pulsa el botón <strong>"Replicar Base en Google Sheets"</strong> para volcar automáticamente los 6.213 terminales desde la memoria de la aplicación.
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+                <button type="button" class="btn-secondary" onclick="window.closeGoogleSheetsSyncModal()" style="padding: 9px 16px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 13px;">Cerrar</button>
+                <button type="button" class="btn-secondary" onclick="window.refreshGoogleSheetsStatus()" style="padding: 9px 16px; border-radius: 8px; border: 1px solid #91d5ff; background: #e6f7ff; color: #0050b3; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-sync-alt"></i> Comprobar Estado
+                </button>
+                <button type="button" id="btn-populate-sheets" class="btn-primary" onclick="window.populateGoogleSheetsFromLocal()" style="padding: 9px 18px; border-radius: 8px; background: #16a34a; color: white; border: none; font-weight: 700; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-cloud-upload-alt"></i> Replicar Base en Google Sheets
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pop-up: Tiendas con IMEIs Pendientes de Rellenar -->
+    <div id="dashboard-pending-imeis-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); z-index: 10020; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="modal-content" style="background: #ffffff; padding: 1.8rem; border-radius: 18px; max-width: 620px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.25); position: relative; animation: slideIn 0.3s ease; border-top: 6px solid var(--mi-orange);">
+            <div class="bottom-sheet-drag-handle"></div>
+            <span class="close-modal" onclick="window.closeDashboardPendingImeisModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.6rem; cursor: pointer; color: var(--mi-gray-dark);">&times;</span>
+            
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,103,0,0.1); color: var(--mi-orange); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                    <i class="fas fa-barcode"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; color: #111;">Tiendas con IMEIs Pendientes</h3>
+                    <small style="color: #666;">Selecciona una tienda para abrir directamente su planograma y rellenar los datos</small>
+                </div>
+            </div>
+
+            <!-- Buscador dentro del modal de tiendas pendientes -->
+            <div style="margin-bottom: 1rem; position: relative;">
+                <input type="text" id="pending-imeis-search-input" placeholder="Buscar por nombre de tienda, cuenta o RMS..." 
+                    style="width: 100%; box-sizing: border-box; padding: 10px 15px 10px 38px; border: 1px solid #ddd; border-radius: 10px; font-size: 13px; outline: none;" 
+                    oninput="window.filterPendingImeisModal(this.value)">
+                <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
+            </div>
+
+            <!-- Lista interactiva de tiendas pendientes -->
+            <div id="pending-imeis-stores-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; min-height: 150px; max-height: 50vh;">
+                <!-- Inyectado por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pop-up: Visor 3D de Terminal Individual con Giro 360 -->
+    <div id="device-3d-inspector-modal" class="modal hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10025; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+        <div class="modal-content">
+            <span class="close-modal" onclick="window.close3DDeviceModal()" style="position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.8rem; cursor: pointer; color: #cbd5e1; z-index: 10;">&times;</span>
+            <div id="device-3d-inspector-body"></div>
+        </div>
+    </div>
+
+    <!-- Librerías de exportación diferidas (no bloquean la renderización inicial) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js" defer></script>
 
     <!-- Archivos principales de la aplicación -->
-    <script src="main_v130.js?v=148" defer></script>
+    <script src="stores_imei_real.js?v=231" defer></script>
+    <script src="main_v130.js?v=231" defer></script>
 </body>
 </html>

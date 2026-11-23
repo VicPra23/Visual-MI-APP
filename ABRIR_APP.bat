@@ -1,6 +1,7 @@
 @echo off
+chcp 65001 >nul
 title SERVIDOR XIAOMI VISUAL
 cd /d "%~dp0"
-echo Lanzando Servidor Seguro...
+echo Lanzando Servidor Seguro Xiaomi Visual...
 powershell -NoProfile -ExecutionPolicy Bypass -File "servidor_xiaomi.ps1"
-pause
+if %errorlevel% neq 0 pause

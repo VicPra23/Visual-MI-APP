@@ -1,24 +1,37 @@
-# Servidor local ultra-ligero para Xiaomi Visual
-$port = 8080
-$listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add("http://localhost:$port/")
+# Servidor local seguro y ultra-ligero para Xiaomi Visual
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
-Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "🚀 INICIANDO SERVIDOR XIAOMI VISUAL" -ForegroundColor Green
-Write-Host "================================================" -ForegroundColor Cyan
+$ports = @(8080, 8081, 8082, 8083, 8084, 8085, 3000, 5000, 8000)
+$listener = $null
+$port = $null
 
-try {
-    $listener.Start()
-} catch {
-    Write-Host "⚠️ El puerto 8080 está ocupado. Intentando con 8081..." -ForegroundColor Yellow
-    $port = 8081
-    $listener.Prefixes.Clear()
-    $listener.Prefixes.Add("http://localhost:$port/")
-    $listener.Start()
+foreach ($p in $ports) {
+    $candidate = New-Object System.Net.HttpListener
+    try {
+        $candidate.Prefixes.Add("http://localhost:$p/")
+        $candidate.Start()
+        $listener = $candidate
+        $port = $p
+        break
+    } catch {
+        if ($candidate) {
+            try { $candidate.Close() } catch {}
+        }
+    }
 }
 
+if (-not $listener -or -not $listener.IsListening) {
+    Write-Host "❌ Error: No se pudo abrir ningún puerto local entre 8080 y 8085." -ForegroundColor Red
+    Write-Host "Por favor, cierra cualquier otro programa o servidor web en ejecución." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host "🚀 SERVIDOR XIAOMI VISUAL ACTIVO" -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Cyan
 $targetUrl = "http://localhost:$port/index.html"
-Write-Host "✅ ¡SERVICIO ACTIVO!" -ForegroundColor Green
+Write-Host "✅ ¡SERVICIO ACTIVO EN EL PUERTO $port!" -ForegroundColor Green
 Write-Host "🌐 URL: $targetUrl" -ForegroundColor Yellow
 Write-Host "⛔ NO CIERRES ESTA VENTANA MIENTRAS USES LA APLICACIÓN." -ForegroundColor Red
 Write-Host "================================================" -ForegroundColor Cyan
@@ -33,9 +46,10 @@ while ($listener.IsListening) {
         $response = $context.Response
         
         $path = $request.Url.LocalPath
-        if ($path -eq "/") { $path = "/index.html" }
+        if ($path -eq "/" -or [string]::IsNullOrWhiteSpace($path)) { $path = "/index.html" }
         
-        $filePath = Join-Path -Path (Get-Location) -ChildPath $path.TrimStart('/')
+        $cleanPath = $path.TrimStart('/')
+        $filePath = Join-Path -Path (Get-Location) -ChildPath $cleanPath
         
         if (Test-Path $filePath -PathType Leaf) {
             $ext = [System.IO.Path]::GetExtension($filePath).ToLower()
@@ -48,8 +62,14 @@ while ($listener.IsListening) {
                 ".jpg"  { $response.ContentType = "image/jpeg" }
                 ".jpeg" { $response.ContentType = "image/jpeg" }
                 ".svg"  { $response.ContentType = "image/svg+xml" }
+                ".ttf"  { $response.ContentType = "font/ttf" }
+                ".woff" { $response.ContentType = "font/woff" }
+                ".woff2"{ $response.ContentType = "font/woff2" }
                 default { $response.ContentType = "application/octet-stream" }
             }
+            
+            $response.Headers.Add("Access-Control-Allow-Origin", "*")
+            $response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate")
             
             $bytes = [System.IO.File]::ReadAllBytes($filePath)
             $response.ContentLength64 = $bytes.Length
@@ -61,6 +81,6 @@ while ($listener.IsListening) {
         }
         $response.Close()
     } catch {
-        Write-Host "Error manejando petición: $_" -ForegroundColor Red
+        Write-Host "Aviso en petición: $_" -ForegroundColor DarkGray
     }
 }
