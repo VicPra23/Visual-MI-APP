@@ -1,12 +1,12 @@
-const CACHE_NAME = 'xiaomi-visual-app-v231';
+const CACHE_NAME = 'xiaomi-visual-app-v232';
 const urlsToCache = [
     './img/posm/toptable_alcampo_crf_note15.png',
     './img/posm/lightbox_alcampo_crf_note15.png',
     './img/posm/cabecera_crf_premium_note15.png',
   './index.html',
-  './main_v130.js?v=231',
-  './style_v128.css?v=231',
-  './stores_imei_real.js?v=231',
+  './main_v130.js?v=232',
+  './style_v128.css?v=232',
+  './stores_imei_real.js?v=232',
   './devices.json',
   './manifest.json',
   './logo.png',

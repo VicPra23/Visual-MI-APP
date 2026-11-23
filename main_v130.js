@@ -9318,6 +9318,7 @@ window.triggerBackgroundImeiSync = async function(event, forceFull = false) {
 
         const needsFullUpload = isForce || !status || !status.success || !status.exists || !status.totalRows || Number(status.totalRows) < 50;
 
+        let pullResult = { rebuilt: false };
         if (needsFullUpload) {
             // Caso A: La pestaña no existe o está vacía -> Cargar la base generada completa en segundo plano
             window.showToast('📦 Replicando base generada (6.213 terminales) en Google Sheets...', 'info');
@@ -9378,7 +9379,7 @@ window.triggerBackgroundImeiSync = async function(event, forceFull = false) {
             Object.keys(db).forEach(storeName => {
                 const devs = db[storeName] || [];
                 devs.forEach(d => {
-                    if ((d.imei && d.imei !== d.imeiOriginal) || d.tipoAccion || d.motivoCambio) {
+                    if ((d.imei && d.imei !== d.imeiOriginal) || (!d._fromLiveSheet && (d.tipoAccion || d.motivoCambio)) || (d.modeloAnterior && d.modelo !== d.modeloAnterior)) {
                         modifiedItems.push({
                             excelRow: d.excelRow || '',
                             cuenta: d.cuenta || '',
@@ -9415,85 +9416,11 @@ window.triggerBackgroundImeiSync = async function(event, forceFull = false) {
                 }
             }
 
-            // Descargar actualizaciones recientes de Google Sheets
-            let appliedCount = 0;
+            // Descargar actualizaciones recientes de Google Sheets y reconstruir catálogo vivo
             try {
                 const getRes = await callApi({ action: 'getFeishuImeis' });
                 if (getRes && getRes.success) {
-                    if (getRes.storeMesas && typeof getRes.storeMesas === 'object') {
-                        Object.keys(getRes.storeMesas).forEach(stName => {
-                            const cnt = Number(getRes.storeMesas[stName]);
-                            if (cnt > 0) updateStoreMesaCount(stName, cnt);
-                        });
-                        saveStoreMesasLocally();
-                    }
-
-                    if (Array.isArray(getRes.records) && getRes.records.length > 0) {
-                        getRes.records.forEach(rec => {
-                            const storeName = rec.tienda;
-                            if (!storeName) return;
-                            const normStore = normalizeString(storeName);
-                            const targetKey = APP_CONFIG.imeiDatabase[storeName] ? storeName : Object.keys(APP_CONFIG.imeiDatabase).find(k => normalizeString(k) === normStore);
-                            if (!targetKey || !APP_CONFIG.imeiDatabase[targetKey]) return;
-
-                            const storeDevices = APP_CONFIG.imeiDatabase[targetKey];
-                            const matched = storeDevices.find(d => 
-                                (rec.excelRow && d.excelRow && Number(d.excelRow) === Number(rec.excelRow)) ||
-                                (String(d.mesa).toLowerCase().trim() === String(rec.mesa).toLowerCase().trim() &&
-                                 String(d.modelo).toLowerCase().trim() === String(rec.modelo).toLowerCase().trim()) ||
-                                (String(d.mesa).toLowerCase().trim() === String(rec.mesa).toLowerCase().trim() &&
-                                 String(d.posicion) === String(rec.posicion))
-                            );
-                            if (matched) {
-                                const isDummyRec = rec.isDummy || 
-                                                   String(rec.estado || '').toLowerCase().includes('dummy') || 
-                                                   String(rec.modelo || '').toLowerCase().includes('dummy');
-
-                                if (isDummyRec) {
-                                    if (!matched.isDummy || matched.tipologia !== 'Dummy') {
-                                        matched.isDummy = true;
-                                        matched.tipologia = 'Dummy';
-                                        matched.imei = '';
-                                        appliedCount++;
-                                    }
-                                } else if (rec.isDummy === false && matched.isDummy) {
-                                    matched.isDummy = false;
-                                    matched.tipologia = 'LDU';
-                                    appliedCount++;
-                                }
-
-                                if (!isDummyRec && rec.imei !== undefined && rec.imei !== matched.imei) {
-                                    matched.imei = rec.imei;
-                                    matched.imeiOriginal = rec.imei;
-                                    appliedCount++;
-                                }
-                                if (rec.modelo && rec.modelo !== matched.modelo) {
-                                    matched.modelo = rec.modelo;
-                                    matched.codigo = rec.codigo || matched.codigo;
-                                    appliedCount++;
-                                }
-                                if (rec.tipoAccion) matched.tipoAccion = rec.tipoAccion;
-                                if (rec.motivoCambio) matched.motivoCambio = rec.motivoCambio;
-                                if (rec.observacionCambio) matched.observacionCambio = rec.observacionCambio;
-                            }
-                            if (rec.numMesas && Number(rec.numMesas) > 0) {
-                                updateStoreMesaCount(storeName, Number(rec.numMesas));
-                            }
-                        });
-
-                        saveImeiDbLocally();
-                        saveStoreMesasLocally();
-                        window.renderStoreImeis();
-                        if (typeof window.updateDashboardImeisWidget === 'function') {
-                            window.updateDashboardImeisWidget();
-                        }
-                        if (typeof window.renderJoaquinTotalsWidget === 'function') {
-                            window.renderJoaquinTotalsWidget();
-                        }
-                        window.showToast(`✅ Sincronización en segundo plano completada. ${appliedCount > 0 ? appliedCount + ' cambios actualizados.' : 'Todos los terminales al día.'}`, 'success');
-                    } else {
-                        window.showToast('✅ Sincronización en segundo plano completada. Terminales al día.', 'success');
-                    }
+                    pullResult = window.applyLiveSheetPull(getRes, { silent: false });
                 } else {
                     window.showToast('✅ Sincronización en segundo plano completada. Terminales al día.', 'success');
                 }
@@ -9503,7 +9430,9 @@ window.triggerBackgroundImeiSync = async function(event, forceFull = false) {
             }
         }
 
-        saveImeiDbLocally();
+        if (!pullResult || !pullResult.rebuilt) {
+            saveImeiDbLocally();
+        }
         window.renderStoreImeis();
         if (typeof window.calculateCampaignTotals === 'function') {
             window.calculateCampaignTotals();
@@ -15531,6 +15460,293 @@ window.onPlanogramStoreSearch = function(query) {
 };
 
 
+// Reconstruye APP_CONFIG.imeiDatabase íntegramente desde las filas vivas de Google Sheets (LDUS DUMMY STOCK)
+window.rebuildImeiDbFromSheetRecords = function(records, storeMesas) {
+    if (!APP_CONFIG.imeiDatabase || Object.keys(APP_CONFIG.imeiDatabase).length === 0) {
+        if (typeof initLocalImeiDatabase === 'function') {
+            initLocalImeiDatabase();
+        }
+    }
+    const prevDb = APP_CONFIG.imeiDatabase || {};
+
+    // Mapa canónico de nombres y usuarios asignados desde el maestro / estado previo
+    const canonStoreMap = {};
+    const storeUserMap = {};
+    const masterStores = (window.REAL_STORES_DATA && Array.isArray(window.REAL_STORES_DATA.stores))
+        ? window.REAL_STORES_DATA.stores
+        : [];
+    masterStores.forEach(s => {
+        if (!s || !s.nombre) return;
+        const cleanName = String(s.nombre).trim();
+        const norm = normalizeString(cleanName);
+        if (norm) {
+            canonStoreMap[norm] = cleanName;
+            if (s.usuario || s.gpv) {
+                storeUserMap[norm] = String(s.usuario || s.gpv).trim();
+            }
+        }
+    });
+    Object.keys(prevDb).forEach(k => {
+        const norm = normalizeString(k);
+        if (norm && !canonStoreMap[norm]) canonStoreMap[norm] = k;
+        const firstDev = Array.isArray(prevDb[k]) ? prevDb[k][0] : null;
+        if (norm && !storeUserMap[norm] && firstDev && firstDev.usuario) {
+            storeUserMap[norm] = String(firstDev.usuario).trim();
+        }
+    });
+
+    // Indexar estado previo para calcular altas, bajas y modificaciones exactas
+    const allPrevItems = [];
+    const prevBySlot = new Map();
+    const prevByExcelRow = new Map();
+    Object.keys(prevDb).forEach(k => {
+        const list = prevDb[k];
+        if (!Array.isArray(list)) return;
+        const nStore = normalizeString(k);
+        list.forEach((d, idx) => {
+            const entry = { prev: d, matched: false };
+            allPrevItems.push(entry);
+            const nMesa = String(d.mesa || 'Mesa 1').toLowerCase().trim();
+            const pPos = Number(d.posicion) || (idx + 1);
+            const slotKey = `${nStore}||${nMesa}||${pPos}`;
+            if (!prevBySlot.has(slotKey)) prevBySlot.set(slotKey, []);
+            prevBySlot.get(slotKey).push(entry);
+            if (d.excelRow) {
+                prevByExcelRow.set(`${nStore}||${Number(d.excelRow)}`, entry);
+            }
+        });
+    });
+
+    const rebuiltDb = {};
+    const mesaPosCounters = {};
+    let totalDevices = 0;
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    (records || []).forEach((rec, recIdx) => {
+        const rawTienda = String(rec && rec.tienda ? rec.tienda : '').trim();
+        if (!rawTienda) return;
+        const normStore = normalizeString(rawTienda);
+        const storeKey = canonStoreMap[normStore] || rawTienda;
+        if (normStore && !canonStoreMap[normStore]) canonStoreMap[normStore] = storeKey;
+
+        const rawMesa = String(rec.mesa || 'Mesa 1').trim();
+        const mesaLabel = /^\d+$/.test(rawMesa) ? `Mesa ${rawMesa}` : rawMesa;
+        const mesaNum = mesaLabel.replace(/\D/g, '') || '1';
+        const counterKey = `${storeKey}||${mesaLabel}`;
+        const pos = (mesaPosCounters[counterKey] = (mesaPosCounters[counterKey] || 0) + 1);
+
+        const isDummy = Boolean(
+            rec.isDummy ||
+            String(rec.estado || '').toLowerCase().includes('dummy') ||
+            String(rec.modelo || '').toLowerCase().includes('dummy')
+        );
+        const resolvedUser = String(rec.usuario || '').trim() || storeUserMap[normStore] || '';
+        const cleanModelo = String(rec.modelo || '').trim();
+        const cleanImei = isDummy ? '' : String(rec.imei || '').trim();
+        const mesaCountFromMap = storeMesas ? (Number(storeMesas[rec.tienda]) || Number(storeMesas[storeKey]) || 0) : 0;
+        const sheetMesaCount = Number(rec.numMesas) || mesaCountFromMap || 1;
+
+        const devObj = {
+            id: `dev_${storeKey.replace(/[^a-zA-Z0-9]/g, '_')}_m${mesaNum}_p${pos}_r${rec.excelRow || (recIdx + 2)}`,
+            tienda: storeKey,
+            cuenta: rec.cuenta || '',
+            rms: rec.rms || '',
+            usuario: resolvedUser,
+            mesa: mesaLabel,
+            posicion: pos,
+            tipologia: isDummy ? 'Dummy' : 'LDU',
+            isDummy: isDummy,
+            modelo: cleanModelo,
+            codigo: rec.codigo || '',
+            imei: cleanImei,
+            imeiOriginal: cleanImei,
+            estado: rec.estado || (isDummy ? 'Maqueta dummy' : (cleanImei ? 'Disponible en tienda' : 'Sin asignar')),
+            motivoCambio: rec.motivoCambio || '',
+            tipoAccion: rec.tipoAccion || '',
+            modeloAnterior: '',
+            imeiAnterior: '',
+            observacionCambio: rec.observacionCambio || '',
+            fechaModificacion: rec.fechaModificacion || '',
+            numMesas: sheetMesaCount,
+            excelRow: rec.excelRow || null,
+            _fromLiveSheet: true
+        };
+
+        if (!rebuiltDb[storeKey]) rebuiltDb[storeKey] = [];
+        rebuiltDb[storeKey].push(devObj);
+        totalDevices++;
+
+        let prevEntry = null;
+        const slotKey = `${normStore}||${mesaLabel.toLowerCase().trim()}||${pos}`;
+        const slotBucket = prevBySlot.get(slotKey);
+        if (slotBucket) {
+            prevEntry = slotBucket.find(e => !e.matched) || null;
+        }
+        if (!prevEntry && devObj.excelRow) {
+            const rowEntry = prevByExcelRow.get(`${normStore}||${Number(devObj.excelRow)}`);
+            if (rowEntry && !rowEntry.matched) prevEntry = rowEntry;
+        }
+
+        if (!prevEntry) {
+            addedCount++;
+        } else {
+            prevEntry.matched = true;
+            const prevDev = prevEntry.prev;
+            const modelChanged = String(prevDev.modelo || '').trim() !== cleanModelo;
+            const imeiChanged = String(prevDev.imei || '').trim() !== cleanImei;
+            const dummyChanged = Boolean(prevDev.isDummy) !== isDummy;
+            if (modelChanged || imeiChanged || dummyChanged) {
+                updatedCount++;
+            }
+        }
+    });
+
+    const removedCount = allPrevItems.filter(x => !x.matched).length;
+    const totalStores = Object.keys(rebuiltDb).length;
+
+    APP_CONFIG.imeiDatabase = rebuiltDb;
+    if (window.REAL_STORES_DATA) {
+        window.REAL_STORES_DATA.imei_db = rebuiltDb;
+    }
+
+    if (storeMesas && typeof storeMesas === 'object') {
+        Object.keys(storeMesas).forEach(stName => {
+            const cnt = Number(storeMesas[stName]);
+            if (cnt > 0) updateStoreMesaCount(stName, cnt);
+        });
+    }
+    Object.keys(rebuiltDb).forEach(stName => {
+        const cnt = rebuiltDb[stName][0] && Number(rebuiltDb[stName][0].numMesas);
+        if (cnt > 0) updateStoreMesaCount(stName, cnt);
+    });
+    saveStoreMesasLocally();
+
+    // El Sheet en vivo pasa a ser la fuente autoritativa; limpiar deltas antiguos
+    try { localStorage.removeItem('xiaomi_imei_edits_v187'); } catch (e) {}
+
+    return {
+        totalDevices,
+        totalStores,
+        addedCount,
+        removedCount,
+        updatedCount,
+        changedTotal: addedCount + removedCount + updatedCount
+    };
+};
+
+// Aplica los registros descargados de Google Sheets (reconstrucción completa o parche legado) y refresca la UI
+window.applyLiveSheetPull = function(res, options = {}) {
+    const silent = Boolean(options.silent);
+    if (!res || !res.success) {
+        return { handled: false, rebuilt: false, appliedCount: 0 };
+    }
+
+    const refreshAllViews = () => {
+        if (typeof window.renderStoreImeis === 'function') window.renderStoreImeis();
+        if (typeof window.updateDashboardImeisWidget === 'function') window.updateDashboardImeisWidget();
+        if (typeof window.renderJoaquinTotalsWidget === 'function') window.renderJoaquinTotalsWidget();
+        if (typeof window.calculateCampaignTotals === 'function') window.calculateCampaignTotals();
+        const campanaView = document.getElementById('view-campana');
+        if (campanaView && !campanaView.classList.contains('hidden') && typeof window.switchClusterTab === 'function') {
+            window.switchClusterTab(window.currentActiveClusterTab || 1);
+        }
+    };
+
+    if (res.source === 'google_sheets_ldus' && Array.isArray(res.records) && res.records.length > 0) {
+        const stats = window.rebuildImeiDbFromSheetRecords(res.records, res.storeMesas);
+        refreshAllViews();
+        if (!silent && typeof window.showToast === 'function') {
+            window.showToast(
+                `✅ Google Sheets sincronizado: ${stats.totalDevices} terminales en ${stats.totalStores} tiendas (${stats.updatedCount} actualizados, ${stats.addedCount} nuevos, ${stats.removedCount} eliminados).`,
+                'success'
+            );
+        }
+        return { handled: true, rebuilt: true, stats, appliedCount: stats.changedTotal };
+    }
+
+    if (res.storeMesas && typeof res.storeMesas === 'object') {
+        Object.keys(res.storeMesas).forEach(stName => {
+            const cnt = Number(res.storeMesas[stName]);
+            if (cnt > 0) updateStoreMesaCount(stName, cnt);
+        });
+        saveStoreMesasLocally();
+    }
+
+    let appliedCount = 0;
+    if (Array.isArray(res.records) && res.records.length > 0) {
+        if (!APP_CONFIG.imeiDatabase || Object.keys(APP_CONFIG.imeiDatabase).length === 0) {
+            if (typeof initLocalImeiDatabase === 'function') initLocalImeiDatabase();
+        }
+
+        res.records.forEach(rec => {
+            const storeName = rec.tienda;
+            if (!storeName) return;
+            const normStore = normalizeString(storeName);
+            const targetKey = APP_CONFIG.imeiDatabase[storeName]
+                ? storeName
+                : Object.keys(APP_CONFIG.imeiDatabase).find(k => normalizeString(k) === normStore);
+            if (!targetKey || !APP_CONFIG.imeiDatabase[targetKey]) return;
+
+            const storeDevices = APP_CONFIG.imeiDatabase[targetKey];
+            const matched = storeDevices.find(d =>
+                (rec.excelRow && d.excelRow && Number(d.excelRow) === Number(rec.excelRow)) ||
+                (String(d.mesa).toLowerCase().trim() === String(rec.mesa).toLowerCase().trim() &&
+                 String(d.modelo).toLowerCase().trim() === String(rec.modelo).toLowerCase().trim()) ||
+                (String(d.mesa).toLowerCase().trim() === String(rec.mesa).toLowerCase().trim() &&
+                 String(d.posicion) === String(rec.posicion))
+            );
+
+            if (matched) {
+                const isDummyRec = rec.isDummy ||
+                    String(rec.estado || '').toLowerCase().includes('dummy') ||
+                    String(rec.modelo || '').toLowerCase().includes('dummy');
+
+                if (isDummyRec) {
+                    if (!matched.isDummy || matched.tipologia !== 'Dummy') {
+                        matched.isDummy = true;
+                        matched.tipologia = 'Dummy';
+                        matched.imei = '';
+                        appliedCount++;
+                    }
+                } else if (rec.isDummy === false && matched.isDummy) {
+                    matched.isDummy = false;
+                    matched.tipologia = 'LDU';
+                    appliedCount++;
+                }
+
+                if (!isDummyRec && rec.imei !== undefined && rec.imei !== matched.imei) {
+                    matched.imei = rec.imei;
+                    matched.imeiOriginal = rec.imei;
+                    appliedCount++;
+                }
+                if (rec.modelo && rec.modelo !== matched.modelo) {
+                    matched.modelo = rec.modelo;
+                    matched.codigo = rec.codigo || matched.codigo;
+                    appliedCount++;
+                }
+                if (rec.tipoAccion) matched.tipoAccion = rec.tipoAccion;
+                if (rec.motivoCambio) matched.motivoCambio = rec.motivoCambio;
+                if (rec.observacionCambio) matched.observacionCambio = rec.observacionCambio;
+            }
+            if (rec.numMesas && Number(rec.numMesas) > 0) {
+                updateStoreMesaCount(storeName, Number(rec.numMesas));
+            }
+        });
+
+        saveImeiDbLocally();
+        saveStoreMesasLocally();
+        refreshAllViews();
+        if (!silent && typeof window.showToast === 'function') {
+            window.showToast(`¡Sincronización completada! ${appliedCount} actualizaciones aplicadas desde Google Sheets.`, 'success');
+        }
+    } else if (!silent && typeof window.showToast === 'function') {
+        window.showToast('Nube verificada: Todos los terminales e IMEIs están al día.', 'success');
+    }
+
+    return { handled: true, rebuilt: false, appliedCount };
+};
+
 // Sincronización en vivo con la nube / Feishu (LDUS DUMMY STORE)
 window.syncWithFeishuLive = async function(silent = false) {
     const btn = document.getElementById('btn-sync-feishu');
@@ -15544,89 +15760,7 @@ window.syncWithFeishuLive = async function(silent = false) {
         if (!silent) window.showToast('Conectando con la base en la nube...', 'info');
         const res = await callApi({ action: 'getFeishuImeis' });
         if (res && res.success) {
-            let appliedCount = 0;
-
-            if (res.storeMesas && typeof res.storeMesas === 'object') {
-                Object.keys(res.storeMesas).forEach(stName => {
-                    const cnt = Number(res.storeMesas[stName]);
-                    if (cnt > 0) updateStoreMesaCount(stName, cnt);
-                });
-                saveStoreMesasLocally();
-            }
-
-            if (Array.isArray(res.records) && res.records.length > 0) {
-                if (!APP_CONFIG.imeiDatabase || Object.keys(APP_CONFIG.imeiDatabase).length === 0) {
-                    if (typeof initLocalImeiDatabase === 'function') initLocalImeiDatabase();
-                }
-
-                res.records.forEach(rec => {
-                    const storeName = rec.tienda;
-                    if (!storeName) return;
-                    const normStore = normalizeString(storeName);
-                    const targetKey = APP_CONFIG.imeiDatabase[storeName] ? storeName : Object.keys(APP_CONFIG.imeiDatabase).find(k => normalizeString(k) === normStore);
-                    if (!targetKey || !APP_CONFIG.imeiDatabase[targetKey]) return;
-
-                    const storeDevices = APP_CONFIG.imeiDatabase[targetKey];
-                    const matched = storeDevices.find(d => 
-                        (rec.excelRow && d.excelRow && Number(d.excelRow) === Number(rec.excelRow)) ||
-                        (String(d.mesa).toLowerCase().trim() === String(rec.mesa).toLowerCase().trim() &&
-                         String(d.modelo).toLowerCase().trim() === String(rec.modelo).toLowerCase().trim()) ||
-                        (String(d.mesa).toLowerCase().trim() === String(rec.mesa).toLowerCase().trim() &&
-                         String(d.posicion) === String(rec.posicion))
-                    );
-
-                    if (matched) {
-                        const isDummyRec = rec.isDummy || 
-                                           String(rec.estado || '').toLowerCase().includes('dummy') || 
-                                           String(rec.modelo || '').toLowerCase().includes('dummy');
-
-                        if (isDummyRec) {
-                            if (!matched.isDummy || matched.tipologia !== 'Dummy') {
-                                matched.isDummy = true;
-                                matched.tipologia = 'Dummy';
-                                matched.imei = '';
-                                appliedCount++;
-                            }
-                        } else if (rec.isDummy === false && matched.isDummy) {
-                            matched.isDummy = false;
-                            matched.tipologia = 'LDU';
-                            appliedCount++;
-                        }
-
-                        if (!isDummyRec && rec.imei !== undefined && rec.imei !== matched.imei) {
-                            matched.imei = rec.imei;
-                            matched.imeiOriginal = rec.imei;
-                            appliedCount++;
-                        }
-                        if (rec.modelo && rec.modelo !== matched.modelo) {
-                            matched.modelo = rec.modelo;
-                            matched.codigo = rec.codigo || matched.codigo;
-                            appliedCount++;
-                        }
-                        if (rec.tipoAccion) matched.tipoAccion = rec.tipoAccion;
-                        if (rec.motivoCambio) matched.motivoCambio = rec.motivoCambio;
-                        if (rec.observacionCambio) matched.observacionCambio = rec.observacionCambio;
-                    }
-                    if (rec.numMesas && Number(rec.numMesas) > 0) {
-                        updateStoreMesaCount(storeName, Number(rec.numMesas));
-                    }
-                });
-
-                saveImeiDbLocally();
-                saveStoreMesasLocally();
-                window.renderStoreImeis();
-                if (typeof window.updateDashboardImeisWidget === 'function') {
-                    window.updateDashboardImeisWidget();
-                }
-                if (typeof window.renderJoaquinTotalsWidget === 'function') {
-                    window.renderJoaquinTotalsWidget();
-                }
-                if (!silent) {
-                    window.showToast(`¡Sincronización completada! ${appliedCount} actualizaciones aplicadas desde Google Sheets.`, 'success');
-                }
-            } else {
-                if (!silent) window.showToast('Nube verificada: Todos los terminales e IMEIs están al día.', 'success');
-            }
+            window.applyLiveSheetPull(res, { silent });
         } else {
             if (!silent) window.showToast('Nube verificada: Todos los terminales e IMEIs están al día.', 'success');
         }
