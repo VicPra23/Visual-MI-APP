@@ -151,14 +151,25 @@ h1, h2, h3, h4, .dashboard-welcome-title {
 }
 
 .login-card select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
     background-image: url('data:image/svg+xml;utf8,<svg fill="%23ff6700" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
     background-repeat: no-repeat;
     background-position: right 16px center;
+    background-size: 20px 20px;
     padding-right: 40px;
     cursor: pointer;
+}
+
+.login-card select::-ms-expand,
+select::-ms-expand {
+    display: none;
+}
+
+.login-card select::picker-icon,
+select::picker-icon {
+    display: none;
 }
 
 .login-card input:focus, .login-card select:focus {
@@ -442,12 +453,13 @@ h1, h2, h3, h4, .dashboard-welcome-title {
 }
 
 select.capsule-select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
     background-image: url('data:image/svg+xml;utf8,<svg fill="%23ff6700" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
     background-repeat: no-repeat;
     background-position: right 10px center;
+    background-size: 20px 20px;
     padding-right: 32px !important;
 }
 
@@ -825,12 +837,13 @@ td {
 }
 
 select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
     background-image: url('data:image/svg+xml;utf8,<svg fill="%23ff6700" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
     background-repeat: no-repeat;
     background-position: right 12px center;
+    background-size: 20px 20px;
     padding-right: 36px;
     cursor: pointer;
 }
