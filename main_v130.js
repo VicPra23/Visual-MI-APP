@@ -12930,8 +12930,8 @@ window.wrapRetailCabeceraEci3D = function(cabeceraId, title = '03. Cabecera ECI 
 
                         <!-- Dispositivos con Volumen 3D en Frontal (Disposición Oficial ECI) -->
                         <div class="cabecera-stage-3d">
-                            <!-- Posición 1: Trío de Exhibición Xiaomi 18 Pro (White, Black, Blue) -->
-                            <div class="cabecera-item-pos cabecera-pos-1" onclick="window.open3DDeviceModal('Xiaomi 18 Pro Max', 'phone-theme-blue', 'Exposición 3 Colores', 'phone')" title="Xiaomi 18 Pro Max (Trío de Exhibición) - Clic para ver 3D interactivo">
+                            <!-- Posición 1-2: Dummies Xiaomi 18 Pro Max (Negro / Blanco) & Xiaomi 18 Pro (Azul) -->
+                            <div class="cabecera-item-pos cabecera-pos-1" onclick="window.open3DDeviceModal('Xiaomi 18 Pro Max', 'phone-theme-blue', 'Exposición 3 Colores', 'phone')" title="Pos 1-2: Dummies Xiaomi 18 Pro Max (Negro/Blanco) & Xiaomi 18 Pro (Azul) - Clic para ver 3D interactivo">
                                 <div class="cabecera-pedestal-trio">
                                     <div class="phone-3d-trio trio-phone-blue">
                                         <img src="img/devices/xiaomi_18_pro_back.webp" class="trio-skin" alt="Xiaomi 18 Pro Blue">
@@ -12951,8 +12951,8 @@ window.wrapRetailCabeceraEci3D = function(cabeceraId, title = '03. Cabecera ECI 
                                 </div>
                             </div>
 
-                            <!-- Posición 2: Xiaomi 18 Pro en Dock de Seguridad y Carga -->
-                            <div class="cabecera-item-pos cabecera-pos-2" onclick="window.open3DDeviceModal('Xiaomi 18 Pro', 'phone-theme-orange', 'LDU 18 Pro', 'phone')" title="Xiaomi 18 Pro - Clic para ver 3D interactivo">
+                            <!-- Posición 3: LDU Xiaomi 18 Pro (Rojo) en Dock de Seguridad y Carga -->
+                            <div class="cabecera-item-pos cabecera-pos-2" onclick="window.open3DDeviceModal('Xiaomi 18 Pro', 'phone-theme-orange', 'LDU 18 Pro', 'phone')" title="Pos 3: LDU Xiaomi 18 Pro (Rojo) - Clic para ver 3D interactivo">
                                 <div class="cabecera-dock-group">
                                     <div class="phone-3d-box cabecera-phone-box">
                                         <div class="phone-face-front has-real-skin">
@@ -12981,11 +12981,11 @@ window.wrapRetailCabeceraEci3D = function(cabeceraId, title = '03. Cabecera ECI 
                                 </div>
                             </div>
 
-                            <!-- Posición 3: Xiaomi Watch S5 46mm en Pedestal Cilíndrico Oficial -->
-                            <div class="cabecera-item-pos cabecera-pos-3" onclick="window.open3DDeviceModal('Xiaomi Watch S5 46mm', 'round', 'Wear S5', 'watch')" title="Xiaomi Watch S5 46mm - Clic para ver 3D interactivo">
+                            <!-- Posición 4: Xiaomi Watch S5 45mm en Pedestal Cilíndrico Oficial -->
+                            <div class="cabecera-item-pos cabecera-pos-3" onclick="window.open3DDeviceModal('Xiaomi Watch S5 45mm', 'round', 'Wear S5', 'watch')" title="Pos 4: Xiaomi Watch S5 45mm - Clic para ver 3D interactivo">
                                 <div class="cabecera-watch-pedestal-group">
                                     <div class="watch-3d-box cabecera-watch-box">
-                                        <img src="img/devices/watch_s5_46_front.webp" class="watch-real-skin" alt="Xiaomi Watch S5 46mm">
+                                        <img src="img/devices/watch_s5_46_front.webp" class="watch-real-skin" alt="Xiaomi Watch S5 45mm">
                                     </div>
                                     <div class="cabecera-cylinder-pedestal">
                                         <div class="cylinder-neck"></div>
@@ -13000,8 +13000,8 @@ window.wrapRetailCabeceraEci3D = function(cabeceraId, title = '03. Cabecera ECI 
                                 </div>
                             </div>
 
-                            <!-- Posición 4: Xiaomi Clip / Buds en Bandeja Dual -->
-                            <div class="cabecera-item-pos cabecera-pos-4" onclick="window.open3DDeviceModal('Xiaomi Clip', 'buds', 'Nuevo Clip', 'buds')" title="Xiaomi Clip - Clic para ver 3D interactivo">
+                            <!-- Posición 5: Xiaomi Clip (Nuevo) en Bandeja Dual -->
+                            <div class="cabecera-item-pos cabecera-pos-4" onclick="window.open3DDeviceModal('Xiaomi Clip', 'buds', 'Nuevo Clip', 'buds')" title="Pos 5: Xiaomi Clip (Nuevo) - Clic para ver 3D interactivo">
                                 <div class="cabecera-buds-pad-group">
                                     <div class="buds-3d-box has-real-skin cabecera-buds-box">
                                         <img src="img/devices/buds_clip_front.webp" class="buds-real-skin" alt="Xiaomi Clip">
@@ -13151,7 +13151,7 @@ window.getStandardWall3DHtml = function(wallId = 'wall-std', customTitle) {
         ${window.renderRetailTray('Bloque 1 · RN 17 Pro Max + Watches', `
             ${window.renderRetailSlot({ model: 'RN 17 Pro Max 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'green', specs: 'Green · 200MP OIS' })}
             ${window.renderRetailSlot({ model: 'REDMI Watch 6 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Watch 6 Active' })}
-            ${window.renderRetailSlot({ model: 'REDMI Watch 6 Lite', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Watch 6 Lite' })}
+            ${window.renderRetailSlot({ model: 'REDMI Watch 6 Lite', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'silver', specs: 'REDMI Watch 6 Lite Silver' })}
         `)}
         ${window.renderRetailTray('Bloque 2 · RN 17 Pro 5G + Watches', `
             ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Blue · 120Hz AMOLED' })}
@@ -13161,13 +13161,13 @@ window.getStandardWall3DHtml = function(wallId = 'wall-std', customTitle) {
         ${window.renderRetailTray('Bloque 3 · Tablet REDMI Pad 2', `
             ${window.renderRetailSlot({ model: 'REDMI Pad 2', badgeColor: 'green', typeBadge: 'Pad', deviceType: 'tablet-vertical', color: 'green', specs: '10.6" 90Hz Vertical' })}
         `)}
-        ${window.renderRetailTray('Bloque 4 · Smart Bands', `
+        ${window.renderRetailTray('Bloque 4 · Band 11 Active + Smart Band 11', `
             ${window.renderRetailSlot({ model: 'Xiaomi Band 11 Active', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 Active' })}
-            ${window.renderRetailSlot({ model: 'Xiaomi Band 9 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 9 Active' })}
+            ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo)' })}
         `)}
-        ${window.renderRetailTray('Bloque 5 · Smart Bands', `
+        ${window.renderRetailTray('Bloque 5 · Band 11 Active + Band 10 Pro / Band 10', `
             ${window.renderRetailSlot({ model: 'Xiaomi Band 11 Active', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 Active' })}
-            ${window.renderRetailSlot({ model: 'Xiaomi Band 9 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 9 Active' })}
+            ${window.renderRetailSlot({ model: 'Xiaomi Band 10 Pro / Band 10', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Band 10 Pro (o Band 10 en tiendas con 3 mesas)' })}
         `)}
     `;
     return window.wrapRetailWall3D(
@@ -14217,11 +14217,11 @@ window.renderVisualTableMockup = function(clusterId) {
                 ${window.renderRetailSlot({ model: 'Xiaomi 18 Pro', badgeColor: 'orange', typeBadge: 'Hero LDU', deviceType: 'phone', color: 'gold', specs: 'Xiaomi 18 Pro · LDU con peana', isHero: true })}
                 ${window.renderRetailSlot({ model: 'Dummy Xiaomi 18 Pro', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'gold', specs: 'Dummy Xiaomi 18 Pro (En peana)', isHero: true })}
             `)}
-            ${window.renderRetailTray('Bloque 3 · Serie 17T + Band 10 + Clip', `
+            ${window.renderRetailTray('Bloque 3 · Serie 17T + Watch 5 + Clip', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Xiaomi 17T Pro Blue' })}
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17T Purple' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Band 10', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Band 10 (1 LDU Band 11 entra en dotación)' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Buds Clip (Nuevo)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Watch 5', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Watch 5 (Transición desde Smart Band 10 Pro · Pendiente LDU)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clip (Nuevo · Solo tiendas seleccionadas: 57 ECI / 51 MM)' })}
             `)}
             ${window.renderRetailTray('Bloque 4 · Familia Redmi Note 17 Pro', `
                 ${window.renderRetailSlot({ model: 'RN 17 Pro Max 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'white-orange', specs: 'RN 17 Pro Max 5G White & Orange' })}
@@ -14265,9 +14265,9 @@ window.renderVisualTableMockup = function(clusterId) {
                         <strong style="color: var(--mi-orange); display: block; margin-bottom: 2px;"><i class="fas fa-info-circle"></i> Reglas Guía X18 (1 Mesa):</strong>
                         • <b>Xiaomi 18 Pro Max + Dummy</b> y <b>Xiaomi 18 Pro + Dummy</b> con Top Table Oficial 3D en el separador central (ON/OFF en barra superior)<br>
                         • <b>Top Table Doble Cara:</b> Frontal Xiaomi 18 Pro / Posterior Redmi Note 17 Series<br>
-                        • <b>1 LDU de Smart Band 11</b> entra en dotación (se expone Band 10 si falta espacio)<br>
-                        • Se incorpora <b>Xiaomi Clip</b> (Nuevo) junto a Serie 17T<br>
-                        • <span style="color:#dc2626; font-weight:700;">Devolución a central:</span> Xiaomi 17, Band 10 Pro, Watch 5 y Buds 6
+                        • En Bloque 3 se expone <b>Xiaomi Watch 5</b> (transición desde Smart Band 10 Pro; pendiente recibir LDUs wearables)<br>
+                        • Se incorpora <b>Xiaomi Clip</b> (Nuevo · Display 4.5 KSP) solo en tiendas seleccionadas (57 ECI + 51 MM)<br>
+                        • <span style="color:#dc2626; font-weight:700;">Devolución a central:</span> Xiaomi 17 Ultra, Xiaomi 17, Xiaomi Band 10 y Xiaomi Buds 6
                     </div>
                 </div>
 
@@ -14290,13 +14290,13 @@ window.renderVisualTableMockup = function(clusterId) {
             ${window.renderRetailTray('Bloque 3 · Xiaomi 17T Pro + Watch S5 + Clip', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Xiaomi 17T Pro Blue' })}
                 ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 46mm', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Watch S5 46mm' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm (Nuevo)' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Buds Clip (Nuevo)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm (Nuevo · Sustituye a Band 10 Pro · Pendiente LDU)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clip (Nuevo · Solo tiendas seleccionadas)' })}
             `)}
-            ${window.renderRetailTray('Bloque 4 · Xiaomi 17T + Smart Band 11 Series', `
+            ${window.renderRetailTray('Bloque 4 · Xiaomi 17T + Dummy 17T + Smart Band 11', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17T Purple' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 Active' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi 17T', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'blue', specs: 'Dummy Xiaomi 17T Blue' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo · Sustituye a Band 11 Active · Pendiente LDU)' })}
             `)}
         `;
 
@@ -14306,9 +14306,10 @@ window.renderVisualTableMockup = function(clusterId) {
                 ${window.renderRetailSlot({ model: 'RN 17 Pro Max 5G', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'green', specs: 'Dummy RN 17 Pro Max 5G Green' })}
                 ${window.renderRetailSlot({ model: 'REDMI Watch 6', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 6' })}
             `)}
-            ${window.renderRetailTray('Bloque 2 · RN 17 Pro 5G (Se retira Watch 5)', `
+            ${window.renderRetailTray('Bloque 2 · RN 17 Pro 5G + REDMI Watch 6 Active', `
                 ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'black', specs: 'RN 17 Pro 5G Black' })}
-                ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'purple', specs: 'Dummy RN 17 Pro 5G Purple (Se retira Watch 5)' })}
+                ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'purple', specs: 'Dummy RN 17 Pro 5G Purple' })}
+                ${window.renderRetailSlot({ model: 'REDMI Watch 6 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 6 Active' })}
             `)}
             ${window.renderRetailTray('Bloque 3 · RN 17 5G Black & Blue', `
                 ${window.renderRetailSlot({ model: 'RN 17 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'black', specs: 'RN 17 5G Black' })}
@@ -14391,9 +14392,9 @@ window.renderVisualTableMockup = function(clusterId) {
                     </div>
                     <div style="background: #fff; border: 1px solid #fed7aa; border-radius: 10px; padding: 10px 14px; font-size: 11.5px; color: #7c2d12; line-height: 1.45;">
                         <strong style="color: var(--mi-orange); display: block; margin-bottom: 2px;"><i class="fas fa-info-circle"></i> Reglas Guía X18 (2 Mesas):</strong>
-                        • Mesa 1: <b>Xiaomi 18 Pro Max + Dummy</b> y <b>Xiaomi 18 Pro + Dummy</b> con Top Table Oficial 3D en el separador central (ON/OFF en barra superior), junto a <b>Watch S5 41mm</b>, <b>Xiaomi Clip</b> y <b>Smart Band 11</b><br>
+                        • Mesa 1: <b>Xiaomi 18 Pro Max + Dummy</b> y <b>Xiaomi 18 Pro + Dummy</b> con Top Table Oficial 3D en el separador central (ON/OFF en barra superior), junto a <b>Watch S5 41mm</b>, <b>Xiaomi Clip</b>, <b>Dummy Xiaomi 17T Blue</b> y <b>Smart Band 11</b> (<i>pendiente recibir LDUs wearables, de momento dejamos lo que hay</i>)<br>
                         • <b>Top Table Doble Cara:</b> Frontal Xiaomi 18 Pro / Posterior Redmi Note 17 Series<br>
-                        • Cara Posterior Mesa 1: <span style="color:#dc2626; font-weight:700;">Se retira Watch 5</span> en bloque RN 17 Pro 5G<br>
+                        • Cara Posterior Mesa 1: se incorpora <b>REDMI Watch 6 Active</b> en Bloque 2 (RN 17 Pro 5G). <span style="color:#dc2626; font-weight:700;">Devolución a central (pág. 34):</span> Xiaomi 17 Ultra, Xiaomi 17, Band 10, Watch 5, Buds 6 y Redmi Watch 6 Active sobrante.<br>
                         • Mesa 2: disponible en <b>05. Con Pad 8</b> (Variante A) y <b>06. Con Pad 8 Pro</b> (Variante B)
                     </div>
                 </div>
@@ -14454,11 +14455,11 @@ window.renderVisualTableMockup = function(clusterId) {
             ${window.renderRetailTray('Bloque 3 · Xiaomi 17T Pro + Watch S5 46mm + Clip', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Xiaomi 17T Pro Blue' })}
                 ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 46mm', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Watch S5 46mm' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clip (Sustituye a Band 10)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clip (Nuevo · Display 4.5 KSP · Solo tiendas seleccionadas)' })}
             `)}
             ${window.renderRetailTray('Bloque 4 · Xiaomi 17T + Watch S5 41mm', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17T Purple' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm (Sustituye a Band 10 Pro)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm (Nuevo · Sustituye a Xiaomi Watch S4 · Pendiente LDU)' })}
             `)}
         `;
 
@@ -14473,7 +14474,7 @@ window.renderVisualTableMockup = function(clusterId) {
             `)}
             ${window.renderRetailTray('Bloque 3 · Xiaomi 17T Pro + Smart Band 11', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17T Pro Purple' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo · Sustituye a Xiaomi Band 10 · Pendiente LDU)' })}
             `)}
             ${window.renderRetailTray('Bloque 4 · Xiaomi 17T + Band 11 Active', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Xiaomi 17T Blue' })}
@@ -14648,9 +14649,9 @@ window.renderVisualTableMockup = function(clusterId) {
                     </div>
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 14px; font-size: 11.5px; color: #1e3a8a; line-height: 1.45;">
                         <strong style="color: #0284c7; display: block; margin-bottom: 2px;"><i class="fas fa-info-circle"></i> Directrices Oficiales Wall & Columna:</strong>
-                        • Se sustituyen todas las <b>Band 9 Active</b> por las unidades que lleguen de <b>Band 11 Active</b><br>
-                        • <b>No se retira nada de la serie 15</b> en Wall/Columna<br>
-                        • Cartelería superior: <b>Lightbox Xiaomi 18 Pro Series</b>
+                        • Bloque 4 Wall: <b>Xiaomi Band 11 Active + Xiaomi Smart Band 11 (Nuevo)</b><br>
+                        • Bloque 5 Wall: <b>Xiaomi Band 11 Active + Xiaomi Band 10 Pro</b> (o <b>Band 10</b> en tiendas con 3 mesas)<br>
+                        • Cartelería superior: <b>Lightbox Xiaomi 18 Pro Series</b> (pendiente recibir LDUs wearables, de momento dejamos lo que hay)
                     </div>
                 </div>
 
@@ -14714,13 +14715,13 @@ window.renderVisualTableMockup = function(clusterId) {
             ${window.renderRetailTray('Bloque 3 · 17T Pro + Watch S5 46/41mm + Clips', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Xiaomi 17T Pro Blue' })}
                 ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 46mm', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Watch S5 46mm' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clips' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm (Nuevo · Ant. Band 10 Pro · Pendiente LDU)' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clip (Nuevo · Tiendas seleccionadas)' })}
             `)}
             ${window.renderRetailTray('Bloque 4 · Xiaomi 17 + Dummy 17T + Band 11', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17 Purple' })}
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'blue', specs: 'Dummy Xiaomi 17T Blue' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo · Ant. Smart Band 10 · Pendiente LDU)' })}
             `)}
         `;
         const castM1Back = `
@@ -14732,7 +14733,7 @@ window.renderVisualTableMockup = function(clusterId) {
             ${window.renderRetailTray('Bloque 2 · RN 17 Pro 5G + Watch 6', `
                 ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'black', specs: 'RN 17 Pro 5G Black' })}
                 ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'purple', specs: 'Dummy RN 17 Pro 5G Purple' })}
-                ${window.renderRetailSlot({ model: 'REDMI Watch 6', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 6' })}
+                ${window.renderRetailSlot({ model: 'REDMI Watch 6', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 6 (Nota guía: REDMI Watch 5 Active)' })}
             `)}
             ${window.renderRetailTray('Bloque 3 · RN 17 5G + Watch 6 Active & Lite', `
                 ${window.renderRetailSlot({ model: 'RN 17 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'RN 17 5G Purple' })}
@@ -14811,9 +14812,9 @@ window.renderVisualTableMockup = function(clusterId) {
                 ${window.renderRetailSlot({ model: 'RN 17 Pro Max 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'black', specs: 'RN 17 Pro Max 5G Black' })}
                 ${window.renderRetailSlot({ model: 'REDMI Watch 6', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 6' })}
             `)}
-            ${window.renderRetailTray('Bloque 4 · RN 17 Pro 5G + Watch 5', `
+            ${window.renderRetailTray('Bloque 4 · RN 17 Pro 5G + REDMI Watch 5', `
                 ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'RN 17 Pro 5G Blue' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Watch 5', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI / Xiaomi Watch 5' })}
+                ${window.renderRetailSlot({ model: 'REDMI Watch 5', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 5' })}
             `)}
         `;
         const castWall2Html = window.wrapRetailWall3D('spec-cast-wall2', 'ECI Castellana · WALL 2 (Lifestyle · 4 Bloques)', castWall2Trays, 'ECI CASTELLANA · WALL 2 LIFESTYLE', 'WALL 2 · 4 BLOQUES');
@@ -14830,11 +14831,11 @@ window.renderVisualTableMockup = function(clusterId) {
             `)}
             ${window.renderRetailTray('Bloque 3 · Xiaomi 17T Pro + Watch S5 41mm', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'Xiaomi 17T Pro Blue' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Watch S5 41mm', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'gold', specs: 'Xiaomi Watch S5 41mm (Nuevo · Ant. Smart Band 10 · Pendiente LDU)' })}
             `)}
             ${window.renderRetailTray('Bloque 4 · Xiaomi 17 + Smart Band 11', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17 Purple' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 (Nuevo · Ant. Smart Band 10 Pro · Pendiente LDU)' })}
             `)}
         `;
         const ssrrM1Back = `
@@ -14846,9 +14847,9 @@ window.renderVisualTableMockup = function(clusterId) {
                 ${window.renderRetailSlot({ model: 'Xiaomi 17', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'black', specs: 'Xiaomi 17' })}
                 ${window.renderRetailSlot({ model: 'Xiaomi Watch 5', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Watch 5' })}
             `)}
-            ${window.renderRetailTray('Bloque 3 · Xiaomi 17T Pro + Band 11 Active', `
+            ${window.renderRetailTray('Bloque 3 · Xiaomi 17T Pro + Xiaomi Clip', `
                 ${window.renderRetailSlot({ model: 'Xiaomi 17T Pro', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'purple', specs: 'Xiaomi 17T Pro Purple' })}
-                ${window.renderRetailSlot({ model: 'Xiaomi Smart Band 11 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'Xiaomi Smart Band 11 Active' })}
+                ${window.renderRetailSlot({ model: 'Xiaomi Clip', badgeColor: 'orange', typeBadge: 'Nuevo', deviceType: 'buds', color: 'gold', specs: 'Xiaomi Clip (Nuevo)' })}
             `)}
         `;
         const ssrrM2Front = `
@@ -14859,7 +14860,7 @@ window.renderVisualTableMockup = function(clusterId) {
             `)}
             ${window.renderRetailTray('Bloque 2 · RN 17 Pro 5G + Watch 6 Active', `
                 ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'orange', typeBadge: 'LDU', deviceType: 'phone', color: 'blue', specs: 'RN 17 Pro 5G Blue' })}
-                ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'purple', specs: 'Dummy RN 17 Pro 5G' })}
+                ${window.renderRetailSlot({ model: 'RN 17 Pro 5G', badgeColor: 'green', typeBadge: 'Dummy', deviceType: 'phone', color: 'blue', specs: 'Dummy RN 17 Pro 5G Blue' })}
                 ${window.renderRetailSlot({ model: 'REDMI Watch 6 Active', badgeColor: 'orange', typeBadge: 'Wear', deviceType: 'watch', color: 'black', specs: 'REDMI Watch 6 Active' })}
             `)}
             ${window.renderRetailTray('Bloque 3 · RN 17 5G + Watch 6 Active', `
@@ -14989,7 +14990,7 @@ window.renderVisualTableMockup = function(clusterId) {
         html = `
             <div class="visual-table-wrapper">
                 ${storeHeaderHtml}
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 1rem;">
                     <div>
                         <span style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 11px; padding: 3px 10px; border-radius: 6px; text-transform: uppercase;">10. LINEAL WEARABLES · MM & ECI</span>
                         <h3 style="margin: 4px 0 0; font-size: 1.25rem; color: #0f172a; font-weight: 800;">Planograma Oficial Lineal de Wearables 3D (9, 8, 7 y 6 Posiciones)</h3>
@@ -15008,72 +15009,77 @@ window.renderVisualTableMockup = function(clusterId) {
                     </div>
                 </div>
 
+                <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; padding: 10px 14px; margin-bottom: 1.25rem; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-exclamation-triangle" style="color: #d97706;"></i>
+                    <span><b>Nota Guía Oficial X18:</b> Pendiente recibir LDUs de wearables (<i>Xiaomi Watch S5 41mm</i> y <i>Xiaomi Smart Band 11</i>): de momento dejamos lo que hay expuesto en tienda.</span>
+                </div>
+
                 ${window.wrapRetailWearableLineal3D('wear-mm9', 'MediaMarkt · Lineal Wearables 9 Posiciones (5 Sup. + 4 Inf.)', 'Doble altura con gama completa Xiaomi Watch & Smart Band', 'MEDIAMARKT · 9 POSICIONES',
                     [
-                        { m: 'Xiaomi Watch 5', t: 'Sup 1' },
-                        { m: 'Xiaomi Watch S5 46mm', t: 'Sup 2' },
-                        { m: 'Xiaomi Watch S5 41mm', t: 'Sup 3 · Nuevo', c: 'gold' },
-                        { m: 'Xiaomi Watch S4', t: 'Sup 4' },
-                        { m: 'Xiaomi Watch S4 41mm', t: 'Sup 5', c: 'gold' }
+                        { m: 'Xiaomi Watch 5 46mm Black', t: 'Sup 1' },
+                        { m: 'Xiaomi Watch S5', t: 'Sup 2' },
+                        { m: 'Xiaomi Watch S5 41mm', t: 'Sup 3 · Nuevo', c: 'gold', s: 'Xiaomi Watch S5 41mm (Nuevo · Antes Band 10)' },
+                        { m: 'REDMI Watch 6 Lite Black', t: 'Sup 4' },
+                        { m: 'Xiaomi Smart Band 11', t: 'Sup 5 · Nuevo', s: 'Xiaomi Smart Band 11 (Nuevo · Antes Band 9 Active)' }
                     ],
                     [
-                        { m: 'Xiaomi Smart Band 10 Pro', t: 'Inf 1' },
-                        { m: 'Xiaomi Smart Band 11', t: 'Inf 2 · Nuevo' },
-                        { m: 'Xiaomi Smart Band 11 Active', t: 'Inf 3 · Nuevo' },
-                        { m: 'REDMI Watch 6', t: 'Inf 4' }
+                        { m: 'Xiaomi Watch S4 Black', t: 'Inf 1' },
+                        { m: 'REDMI Watch 6 Black', t: 'Inf 2' },
+                        { m: 'Xiaomi Smart Band 11 Active Black', t: 'Inf 3' },
+                        { m: 'REDMI Watch 6 Active Midnight', t: 'Inf 4' }
                     ]
                 )}
 
                 ${window.wrapRetailWearableLineal3D('wear-mm8', 'MediaMarkt · Lineal Wearables 8 Posiciones (4 Sup. + 4 Inf.)', 'Doble altura simétrica 4 + 4', 'MEDIAMARKT · 8 POSICIONES',
                     [
-                        { m: 'Xiaomi Watch 5', t: 'Sup 1' },
-                        { m: 'Xiaomi Watch S5 46mm', t: 'Sup 2' },
-                        { m: 'Xiaomi Watch S5 41mm', t: 'Sup 3 · Nuevo', c: 'gold' },
-                        { m: 'Xiaomi Watch S4 41mm', t: 'Sup 4', c: 'gold' }
+                        { m: 'Xiaomi Watch S5 41mm Black', t: 'Sup 1 · Nuevo', s: 'Xiaomi Watch S5 41mm Black (Nuevo · Antes Watch S4 41mm)' },
+                        { m: 'REDMI Watch 6 Black', t: 'Sup 2' },
+                        { m: 'REDMI Watch 6 Lite Black', t: 'Sup 3' },
+                        { m: 'REDMI Watch 6 Active Midnight', t: 'Sup 4' }
                     ],
                     [
-                        { m: 'Xiaomi Smart Band 10 Pro', t: 'Inf 1' },
-                        { m: 'Xiaomi Smart Band 11', t: 'Inf 2 · Nuevo' },
-                        { m: 'Xiaomi Smart Band 11 Active', t: 'Inf 3 · Nuevo' },
-                        { m: 'REDMI Watch 6', t: 'Inf 4' }
+                        { m: 'Xiaomi Watch S5 46mm', t: 'Inf 1' },
+                        { m: 'Xiaomi Smart Band 10', t: 'Inf 2' },
+                        { m: 'Xiaomi Smart Band 11 Active Black', t: 'Inf 3' },
+                        { m: 'Xiaomi Smart Band 11', t: 'Inf 4 · Nuevo', s: 'Xiaomi Smart Band 11 (Nuevo · Antes Band 9 Active)' }
                     ]
                 )}
 
                 ${window.wrapRetailWearableLineal3D('wear-mm7', 'MediaMarkt · Lineal Wearables 7 Posiciones (4 Sup. + 3 Inf.)', 'Doble altura 4 + 3', 'MEDIAMARKT · 7 POSICIONES',
                     [
-                        { m: 'Xiaomi Watch 5', t: 'Sup 1' },
-                        { m: 'Xiaomi Watch S5 46mm', t: 'Sup 2' },
-                        { m: 'Xiaomi Watch S5 41mm', t: 'Sup 3 · Nuevo', c: 'gold' },
-                        { m: 'Xiaomi Smart Band 10 Pro', t: 'Sup 4' }
+                        { m: 'Xiaomi Watch S5 41mm Black', t: 'Sup 1 · Nuevo', s: 'Xiaomi Watch S5 41mm Black (Nuevo · Antes Watch S4 41mm)' },
+                        { m: 'REDMI Watch 5 Black', t: 'Sup 2' },
+                        { m: 'Xiaomi Smart Band 11 Active Black', t: 'Sup 3' },
+                        { m: 'Xiaomi Smart Band 11', t: 'Sup 4 · Nuevo', s: 'Xiaomi Smart Band 11 (Nuevo · Antes Band 9 Active)' }
                     ],
                     [
-                        { m: 'Xiaomi Smart Band 11', t: 'Inf 1 · Nuevo' },
-                        { m: 'Xiaomi Smart Band 11 Active', t: 'Inf 2 · Nuevo' },
-                        { m: 'REDMI Watch 6', t: 'Inf 3' }
+                        { m: 'Xiaomi Watch S4', t: 'Inf 1' },
+                        { m: 'REDMI Watch 6 Lite Black', t: 'Inf 2' },
+                        { m: 'REDMI Watch 6 Active Midnight', t: 'Inf 3' }
                     ]
                 )}
 
                 ${window.wrapRetailWearableLineal3D('wear-mm6', 'MediaMarkt · Lineal Wearables 6 Posiciones (3 Sup. + 3 Inf.)', 'Doble altura compacta 3 + 3', 'MEDIAMARKT · 6 POSICIONES',
                     [
-                        { m: 'Xiaomi Watch S5 46mm', t: 'Sup 1' },
-                        { m: 'Xiaomi Watch S5 41mm', t: 'Sup 2 · Nuevo', c: 'gold' },
-                        { m: 'Xiaomi Smart Band 10 Pro', t: 'Sup 3' }
+                        { m: 'REDMI Watch 5 Black', t: 'Sup 1' },
+                        { m: 'Xiaomi Watch S5 41mm Black', t: 'Sup 2 · Nuevo', s: 'Xiaomi Watch S5 41mm Black (Nuevo · Antes Watch S4 41mm)' },
+                        { m: 'Xiaomi Smart Band 11', t: 'Sup 3 · Nuevo', s: 'Xiaomi Smart Band 11 (Nuevo · Antes Band 10)' }
                     ],
                     [
-                        { m: 'Xiaomi Smart Band 11', t: 'Inf 1 · Nuevo' },
-                        { m: 'Xiaomi Smart Band 11 Active', t: 'Inf 2 · Nuevo' },
-                        { m: 'REDMI Watch 6', t: 'Inf 3' }
+                        { m: 'Xiaomi Watch S5 46mm', t: 'Inf 1' },
+                        { m: 'REDMI Watch 6 Black', t: 'Inf 2' },
+                        { m: 'Xiaomi Smart Band 11 Active Black', t: 'Inf 3' }
                     ]
                 )}
 
                 ${window.wrapRetailWearableLineal3D('wear-eci6', 'El Corte Inglés · Lineal Wearables 6 Posiciones (1 Fila Horizontal)', 'Exposición lineal en 1 única fila de 6 soportes', 'EL CORTE INGLÉS · 6 POSICIONES',
                     [
-                        { m: 'REDMI Watch 6 Lite', t: 'Pos 1' },
-                        { m: 'REDMI Watch 6 Active', t: 'Pos 2' },
-                        { m: 'REDMI Watch 6', t: 'Pos 3' },
-                        { m: 'Xiaomi Smart Band 11 Active', t: 'Pos 4 · Nuevo' },
-                        { m: 'Xiaomi Smart Band 11', t: 'Pos 5 · Nuevo' },
-                        { m: 'Xiaomi Watch S5 41mm', t: 'Pos 6 · Nuevo', c: 'gold' }
+                        { m: 'Xiaomi Watch 5 Black', t: 'Pos 1' },
+                        { m: 'Xiaomi Watch S5 Silver', t: 'Pos 2', c: 'silver' },
+                        { m: 'REDMI Watch 6 Lite Silver', t: 'Pos 3', c: 'silver' },
+                        { m: 'REDMI Watch 6 Active Black', t: 'Pos 4' },
+                        { m: 'Xiaomi Smart Band 11 Active', t: 'Pos 5' },
+                        { m: 'Xiaomi Smart Band 11', t: 'Pos 6 · Nuevo', s: 'Xiaomi Smart Band 11 (Nuevo · Antes Band 9 Pro)' }
                     ],
                     null
                 )}
@@ -15132,9 +15138,10 @@ window.renderVisualTableMockup = function(clusterId) {
                             </div>
                         </div>
                         <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: #334155; line-height: 1.65;">
-                            <li><b>Nuevos Dispositivos:</b> <code>Xiaomi 18 Pro Max</code> (LDU + Dummy en peana), <code>Xiaomi 18 Pro</code> (LDU + Dummy en peana), <code>Xiaomi Watch S5 41mm</code>, <code>Xiaomi Smart Band 11</code> y <code>Xiaomi Buds Clip</code>.</li>
-                            <li><b>Soportes Especiales:</b> Peana oficial para los Dummies de Xiaomi 18 Pro Max y Xiaomi 18 Pro + Soporte específico para <b>Xiaomi Clip</b>.</li>
-                            <li><b>Metacrilatos y Precio:</b> Cartelería actualizada en bloque Hero y actualización de <b>Lightbox Wall / Column</b> a creatividades <i>Xiaomi 18 Pro Series</i>.</li>
+                            <li><b>Nuevos Dispositivos:</b> <code>Xiaomi 18 Pro Max</code>, <code>Xiaomi 18 Pro</code>, <code>Xiaomi Watch S5 41mm</code>, <code>Xiaomi Smart Band 11</code> y <code>Xiaomi Clip</code> (57 tiendas ECI + 51 tiendas MM seleccionadas, display 4.5 KSP).</li>
+                            <li><b>Displays Xiaomi 18 Pro Series:</b> LDU+LDU en MM XL&amp;L / ECI 4&amp;3; LDU+DUMMY en MM M&amp;S / ECI 2; DUMMY+DUMMY en MM XS / ECI 1 (solo precio, KSPs en MiShow).</li>
+                            <li><b>POSM &amp; Cartelería:</b> <b>Luminoso 18 Pro</b> (sustituye luminoso Xiaomi 17T Series), <b>Cubrecestas MM</b> (61 tiendas, 2ª posición) y actualización de <b>Lightbox Wall / Column</b> y <b>Top Table</b>.</li>
+                            <li><b>Nota Wearables:</b> <i>Pendiente recibir LDUs wearables (Watch S5 41mm / Smart Band 11), de momento dejamos lo que hay.</i></li>
                         </ul>
                     </div>
 
@@ -15144,14 +15151,15 @@ window.renderVisualTableMockup = function(clusterId) {
                             <span style="width: 32px; height: 32px; border-radius: 8px; background: #fef2f2; color: #dc2626; display: inline-flex; align-items: center; justify-content: center; font-weight: 800;"><i class="fas fa-undo-alt"></i></span>
                             <div>
                                 <h4 style="margin: 0; font-size: 14px; color: #0f172a; font-weight: 800;">11. Devolución de LDUs a Central</h4>
-                                <span style="font-size: 11px; color: #64748b;">Retirada obligatoria según número de mesas</span>
+                                <span style="font-size: 11px; color: #64748b;">Retirada obligatoria según guía oficial (pág. 34)</span>
                             </div>
                         </div>
                         <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: #334155; line-height: 1.65;">
-                            <li><b>Xiaomi 17 Ultra</b> y <b>Xiaomi 17</b>: Se retiran de <b>1 y 2 Mesas</b> (solo se mantienen en tiendas de 3 Mesas).</li>
-                            <li><b>Xiaomi Smart Band 10 Pro</b>: Se retira de <b>1 y 2 Mesas</b> (solo se mantiene en 3 Mesas).</li>
-                            <li><b>Xiaomi Smart Band 10</b>: Se retira de <b>2 y 3 Mesas</b> (solo se mantiene en 1 Mesa si no cabe Band 11).</li>
-                            <li><b>Xiaomi Watch 5</b> y <b>Xiaomi Buds 6</b>: Se retiran de las mesas estándar (salvo los casos especiales indicados en ECI Castellana y MM SSRR).</li>
+                            <li><b>Xiaomi 17 Ultra</b> y <b>Xiaomi 17</b>: Retirada a central (se mantienen solo donde aplique en 3 Mesas / casos especiales).</li>
+                            <li><b>Xiaomi Band 10</b>: Retirada a central.</li>
+                            <li><b>Xiaomi Watch 5</b>: Retirada en <b>tiendas con 2 y 3 mesas</b>.</li>
+                            <li><b>Xiaomi Buds 6</b>: Retirada a central.</li>
+                            <li><b>REDMI Watch 6 Active</b>: Retirada en <b>tiendas con 2 mesas</b>.</li>
                         </ul>
                     </div>
                 </div>
